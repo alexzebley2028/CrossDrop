@@ -8,7 +8,6 @@ environment:
   sdk: ^3.7.0
 
 dependencies:
-  adwaita: ^1.1.0
   bonsoir: ^5.1.11
   cryptography: ^2.7.0
   device_info_plus: ^11.3.3

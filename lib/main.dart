@@ -10,7 +10,6 @@ import 'package:crossdrop/notifications.dart'; // Import notification helpers
 import 'package:crossdrop/window/on_close_window.dart';
 import 'package:crossdrop/window/system_tray.dart';
 import 'package:flutter/material.dart';
-import 'package:adwaita/adwaita.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -288,8 +287,8 @@ class _AppState extends State<App> implements NearbyEventsListener {
 
     return MaterialApp(
       title: AppConfig.name,
-      theme: Platform.isLinux ? AdwaitaThemeData.light() : ThemeData.light(),
-      darkTheme: Platform.isLinux ? AdwaitaThemeData.dark() : ThemeData.dark(),
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
       themeMode: appTheme.mode,
       debugShowCheckedModeBanner: false,
       home: Scaffold(

@@ -168,11 +168,9 @@ class OutboundNearbyConnection extends NearbyConnection {
           _processUkey2ServerInit(msg, frameData);
           break;
         case OutboundState.sentUkeyClientFinish:
-          // Expecting encrypted ConnectionResponse ACK
-          final smsg = sm.SecureMessage.fromBuffer(frameData);
-          decryptAndProcessReceivedSecureMessage(
-            smsg,
-          ).catchError(_handleAsyncError);
+          // Expecting unencrypted ConnectionResponse ACK before encrypted setup.
+          final frame = offline.OfflineFrame.fromBuffer(frameData);
+          _processConnectionResponseAck(frame).catchError(_handleAsyncError);
           break;
         case OutboundState.sentPairedKeyEncryption:
         case OutboundState.sentPairedKeyResult:
@@ -203,11 +201,12 @@ class OutboundNearbyConnection extends NearbyConnection {
     }
   }
 
-  void _handleAsyncError(Object error, StackTrace stackTrace) {
-    if (connectionClosed || _cancelled) return;
+  Null _handleAsyncError(Object error, StackTrace stackTrace) {
+    if (connectionClosed || _cancelled) return null;
     print("Outbound $id: Async error: $error\n$stackTrace");
     lastError = (error is Exception) ? error : Exception(error.toString());
     protocolError();
+    return null;
   }
 
   @override
@@ -411,16 +410,13 @@ class OutboundNearbyConnection extends NearbyConnection {
     }
   }
 
-  // Process the encrypted ConnectionResponse ACK from the server
+  // Process the unencrypted ConnectionResponse ACK from the server.
   Future<void> _processConnectionResponseAck(offline.OfflineFrame frame) async {
     if (!frame.hasV1() ||
         frame.v1.type != offline.V1Frame_FrameType.CONNECTION_RESPONSE) {
-      // Might receive other frames like PairedKeyEncryption first
-      print(
-        "Outbound $id: Received non-ConnectionResponse frame after ClientFinish, processing as SecureMessage payload.",
+      throw NearbyProtocolException(
+        "Expected ConnectionResponse ACK, got ${frame.v1.type}",
       );
-      // The generic SecureMessage handler will take care of it.
-      return;
     }
     print("Outbound $id: Processing ConnectionResponse ACK");
     if (!frame.v1.hasConnectionResponse()) {
@@ -434,10 +430,9 @@ class OutboundNearbyConnection extends NearbyConnection {
       );
     }
 
-    // Connection is fully established and accepted. Send PairedKeyEncryption.
+    // Connection is accepted. Subsequent setup frames are encrypted.
     print("Outbound $id: Connection accepted by server.");
-    encryptionDone =
-        true; // Mark encryption as active *after* receiving ACCEPT confirmation
+    encryptionDone = true;
     await _sendPairedKeyEncryption();
   }
 

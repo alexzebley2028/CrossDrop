@@ -139,12 +139,13 @@ class InboundNearbyConnection extends NearbyConnection {
     }
   }
 
-  void _handleAsyncError(Object error, StackTrace stackTrace) {
+  Null _handleAsyncError(Object error, StackTrace stackTrace) {
     print(
       "Inbound $id: Async error during frame processing: $error\n$stackTrace",
     );
     lastError = (error is Exception) ? error : Exception(error.toString());
     protocolError();
+    return null;
   }
 
   @override

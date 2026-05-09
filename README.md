@@ -1,5 +1,5 @@
 > [!IMPORTANT]
-> 🥳 [Google has launched official compatibility between Quick Share and AirDrop](https://blog.google/products/android/quick-share-airdrop/). Therefore this project is obsolete which is why I have decided to archive this repo. It was a trial of getting this to work, however Googles implementation in this case sounds more promising.
+> This repository is back in an experimental continuation state on `main`. [Google has announced official compatibility between Quick Share and AirDrop](https://blog.google/products/android/quick-share-airdrop/), so this project may no longer be necessary for everyday use, but the codebase remains available as a work-in-progress implementation for testing and development.
 
 **CrossDrop** is a partial implementation of [Google's Quick Share](https://blog.google/products/android/how-to-use-quick-share-android/) in Flutter for macOS, iOS and Linux.
 
@@ -9,7 +9,7 @@ CrossDrop is based on [NearDrop](https://github.com/grishka/NearDrop), a Swift i
 > **⚠️ This is a work in progress. It is not yet feature-complete, and it is not yet stable. It is not yet ready for use.**
 
 > [!NOTE]
-> As far as I find time I am working on the first version for testing. The current status can be seen in the [dev branch](https://github.com/Medformatik/CrossDrop/tree/dev). At the moment I cannot estimate how long I will need until the first release.
+> The current continuation state is now on `main`. The previous `dev`, `dev2`, and `dev3` branches are experimental snapshots.
 
 [Protocol documentation](https://github.com/grishka/NearDrop/blob/master/PROTOCOL.md) is available in the NearDrop repository.
 
