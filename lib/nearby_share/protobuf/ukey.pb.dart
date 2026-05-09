@@ -2,9 +2,9 @@
 //  Generated code. Do not modify.
 //  source: ukey.proto
 //
-// @dart = 2.12
+// @dart = 3.3
 
-// ignore_for_file: annotate_overrides, camel_case_types
+// ignore_for_file: annotate_overrides, camel_case_types, comment_references
 // ignore_for_file: constant_identifier_names, library_prefixes
 // ignore_for_file: non_constant_identifier_names, prefer_final_fields
 // ignore_for_file: unnecessary_import, unnecessary_this, unused_import
@@ -15,10 +15,24 @@ import 'package:protobuf/protobuf.dart' as $pb;
 
 import 'ukey.pbenum.dart';
 
+export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
+
 export 'ukey.pbenum.dart';
 
 class Ukey2Message extends $pb.GeneratedMessage {
-  factory Ukey2Message() => create();
+  factory Ukey2Message({
+    Ukey2Message_Type? messageType,
+    $core.List<$core.int>? messageData,
+  }) {
+    final $result = create();
+    if (messageType != null) {
+      $result.messageType = messageType;
+    }
+    if (messageData != null) {
+      $result.messageData = messageData;
+    }
+    return $result;
+  }
   Ukey2Message._() : super();
   factory Ukey2Message.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Ukey2Message.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -53,11 +67,11 @@ class Ukey2Message extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   Ukey2Message_Type get messageType => $_getN(0);
   @$pb.TagNumber(1)
-  set messageType(Ukey2Message_Type v) { setField(1, v); }
+  set messageType(Ukey2Message_Type v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasMessageType() => $_has(0);
   @$pb.TagNumber(1)
-  void clearMessageType() => clearField(1);
+  void clearMessageType() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.List<$core.int> get messageData => $_getN(1);
@@ -66,11 +80,23 @@ class Ukey2Message extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasMessageData() => $_has(1);
   @$pb.TagNumber(2)
-  void clearMessageData() => clearField(2);
+  void clearMessageData() => $_clearField(2);
 }
 
 class Ukey2Alert extends $pb.GeneratedMessage {
-  factory Ukey2Alert() => create();
+  factory Ukey2Alert({
+    Ukey2Alert_AlertType? type,
+    $core.String? errorMessage,
+  }) {
+    final $result = create();
+    if (type != null) {
+      $result.type = type;
+    }
+    if (errorMessage != null) {
+      $result.errorMessage = errorMessage;
+    }
+    return $result;
+  }
   Ukey2Alert._() : super();
   factory Ukey2Alert.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Ukey2Alert.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -105,11 +131,11 @@ class Ukey2Alert extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   Ukey2Alert_AlertType get type => $_getN(0);
   @$pb.TagNumber(1)
-  set type(Ukey2Alert_AlertType v) { setField(1, v); }
+  set type(Ukey2Alert_AlertType v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasType() => $_has(0);
   @$pb.TagNumber(1)
-  void clearType() => clearField(1);
+  void clearType() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get errorMessage => $_getSZ(1);
@@ -118,11 +144,25 @@ class Ukey2Alert extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasErrorMessage() => $_has(1);
   @$pb.TagNumber(2)
-  void clearErrorMessage() => clearField(2);
+  void clearErrorMessage() => $_clearField(2);
 }
 
+/// One commitment (hash of ClientFinished containing public key) per supported
+/// cipher
 class Ukey2ClientInit_CipherCommitment extends $pb.GeneratedMessage {
-  factory Ukey2ClientInit_CipherCommitment() => create();
+  factory Ukey2ClientInit_CipherCommitment({
+    Ukey2HandshakeCipher? handshakeCipher,
+    $core.List<$core.int>? commitment,
+  }) {
+    final $result = create();
+    if (handshakeCipher != null) {
+      $result.handshakeCipher = handshakeCipher;
+    }
+    if (commitment != null) {
+      $result.commitment = commitment;
+    }
+    return $result;
+  }
   Ukey2ClientInit_CipherCommitment._() : super();
   factory Ukey2ClientInit_CipherCommitment.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Ukey2ClientInit_CipherCommitment.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -157,11 +197,11 @@ class Ukey2ClientInit_CipherCommitment extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   Ukey2HandshakeCipher get handshakeCipher => $_getN(0);
   @$pb.TagNumber(1)
-  set handshakeCipher(Ukey2HandshakeCipher v) { setField(1, v); }
+  set handshakeCipher(Ukey2HandshakeCipher v) { $_setField(1, v); }
   @$pb.TagNumber(1)
   $core.bool hasHandshakeCipher() => $_has(0);
   @$pb.TagNumber(1)
-  void clearHandshakeCipher() => clearField(1);
+  void clearHandshakeCipher() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.List<$core.int> get commitment => $_getN(1);
@@ -170,11 +210,31 @@ class Ukey2ClientInit_CipherCommitment extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasCommitment() => $_has(1);
   @$pb.TagNumber(2)
-  void clearCommitment() => clearField(2);
+  void clearCommitment() => $_clearField(2);
 }
 
 class Ukey2ClientInit extends $pb.GeneratedMessage {
-  factory Ukey2ClientInit() => create();
+  factory Ukey2ClientInit({
+    $core.int? version,
+    $core.List<$core.int>? random,
+    $core.Iterable<Ukey2ClientInit_CipherCommitment>? cipherCommitments,
+    $core.String? nextProtocol,
+  }) {
+    final $result = create();
+    if (version != null) {
+      $result.version = version;
+    }
+    if (random != null) {
+      $result.random = random;
+    }
+    if (cipherCommitments != null) {
+      $result.cipherCommitments.addAll(cipherCommitments);
+    }
+    if (nextProtocol != null) {
+      $result.nextProtocol = nextProtocol;
+    }
+    return $result;
+  }
   Ukey2ClientInit._() : super();
   factory Ukey2ClientInit.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Ukey2ClientInit.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -215,8 +275,9 @@ class Ukey2ClientInit extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasVersion() => $_has(0);
   @$pb.TagNumber(1)
-  void clearVersion() => clearField(1);
+  void clearVersion() => $_clearField(1);
 
+  /// protection
   @$pb.TagNumber(2)
   $core.List<$core.int> get random => $_getN(1);
   @$pb.TagNumber(2)
@@ -224,11 +285,12 @@ class Ukey2ClientInit extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasRandom() => $_has(1);
   @$pb.TagNumber(2)
-  void clearRandom() => clearField(2);
+  void clearRandom() => $_clearField(2);
 
   @$pb.TagNumber(3)
-  $core.List<Ukey2ClientInit_CipherCommitment> get cipherCommitments => $_getList(2);
+  $pb.PbList<Ukey2ClientInit_CipherCommitment> get cipherCommitments => $_getList(2);
 
+  /// Next protocol that the client wants to speak.
   @$pb.TagNumber(4)
   $core.String get nextProtocol => $_getSZ(3);
   @$pb.TagNumber(4)
@@ -236,11 +298,31 @@ class Ukey2ClientInit extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasNextProtocol() => $_has(3);
   @$pb.TagNumber(4)
-  void clearNextProtocol() => clearField(4);
+  void clearNextProtocol() => $_clearField(4);
 }
 
 class Ukey2ServerInit extends $pb.GeneratedMessage {
-  factory Ukey2ServerInit() => create();
+  factory Ukey2ServerInit({
+    $core.int? version,
+    $core.List<$core.int>? random,
+    Ukey2HandshakeCipher? handshakeCipher,
+    $core.List<$core.int>? publicKey,
+  }) {
+    final $result = create();
+    if (version != null) {
+      $result.version = version;
+    }
+    if (random != null) {
+      $result.random = random;
+    }
+    if (handshakeCipher != null) {
+      $result.handshakeCipher = handshakeCipher;
+    }
+    if (publicKey != null) {
+      $result.publicKey = publicKey;
+    }
+    return $result;
+  }
   Ukey2ServerInit._() : super();
   factory Ukey2ServerInit.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Ukey2ServerInit.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -281,8 +363,9 @@ class Ukey2ServerInit extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasVersion() => $_has(0);
   @$pb.TagNumber(1)
-  void clearVersion() => clearField(1);
+  void clearVersion() => $_clearField(1);
 
+  /// protection
   @$pb.TagNumber(2)
   $core.List<$core.int> get random => $_getN(1);
   @$pb.TagNumber(2)
@@ -290,16 +373,17 @@ class Ukey2ServerInit extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   $core.bool hasRandom() => $_has(1);
   @$pb.TagNumber(2)
-  void clearRandom() => clearField(2);
+  void clearRandom() => $_clearField(2);
 
+  /// Selected Cipher and corresponding public key
   @$pb.TagNumber(3)
   Ukey2HandshakeCipher get handshakeCipher => $_getN(2);
   @$pb.TagNumber(3)
-  set handshakeCipher(Ukey2HandshakeCipher v) { setField(3, v); }
+  set handshakeCipher(Ukey2HandshakeCipher v) { $_setField(3, v); }
   @$pb.TagNumber(3)
   $core.bool hasHandshakeCipher() => $_has(2);
   @$pb.TagNumber(3)
-  void clearHandshakeCipher() => clearField(3);
+  void clearHandshakeCipher() => $_clearField(3);
 
   @$pb.TagNumber(4)
   $core.List<$core.int> get publicKey => $_getN(3);
@@ -308,11 +392,19 @@ class Ukey2ServerInit extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   $core.bool hasPublicKey() => $_has(3);
   @$pb.TagNumber(4)
-  void clearPublicKey() => clearField(4);
+  void clearPublicKey() => $_clearField(4);
 }
 
 class Ukey2ClientFinished extends $pb.GeneratedMessage {
-  factory Ukey2ClientFinished() => create();
+  factory Ukey2ClientFinished({
+    $core.List<$core.int>? publicKey,
+  }) {
+    final $result = create();
+    if (publicKey != null) {
+      $result.publicKey = publicKey;
+    }
+    return $result;
+  }
   Ukey2ClientFinished._() : super();
   factory Ukey2ClientFinished.fromBuffer($core.List<$core.int> i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromBuffer(i, r);
   factory Ukey2ClientFinished.fromJson($core.String i, [$pb.ExtensionRegistry r = $pb.ExtensionRegistry.EMPTY]) => create()..mergeFromJson(i, r);
@@ -350,7 +442,7 @@ class Ukey2ClientFinished extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $core.bool hasPublicKey() => $_has(0);
   @$pb.TagNumber(1)
-  void clearPublicKey() => clearField(1);
+  void clearPublicKey() => $_clearField(1);
 }
 
 
