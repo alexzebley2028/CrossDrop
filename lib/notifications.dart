@@ -27,7 +27,7 @@ Future<void> initializeNotifications(
   // Configure Darwin (iOS & macOS) initialization and request permissions
   final DarwinInitializationSettings
   initializationSettingsDarwin = // Rename for clarity
-      DarwinInitializationSettings(
+  DarwinInitializationSettings(
     requestAlertPermission: true,
     requestBadgePermission: true,
     requestSoundPermission: true,
@@ -59,26 +59,24 @@ Future<void> initializeNotifications(
   );
 
   await flutterLocalNotificationsPlugin.initialize(
-    initializationSettings, // Pass the combined settings
+    settings: initializationSettings, // Pass the combined settings
     onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
     onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
   );
 
   // Request notification permissions on Android 13+ explicitly
-  final androidPermissions =
-      flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >();
+  final androidPermissions = flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >();
   await androidPermissions?.requestNotificationsPermission();
 
   // Request permissions on macOS explicitly using the plugin (needed for macOS 10.14+)
   // iOS permissions are requested via DarwinInitializationSettings during initialize
-  final macOSPermissions =
-      flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
-            MacOSFlutterLocalNotificationsPlugin
-          >();
+  final macOSPermissions = flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+        MacOSFlutterLocalNotificationsPlugin
+      >();
   await macOSPermissions?.requestPermissions(
     alert: true,
     badge: true,
@@ -93,8 +91,9 @@ Future<void> showTransferNotification(
   RemoteDeviceInfo device,
 ) async {
   String body;
-  final pinSnippet =
-      transfer.pinCode != null ? "PIN: ${transfer.pinCode}\n" : "";
+  final pinSnippet = transfer.pinCode != null
+      ? "PIN: ${transfer.pinCode}\n"
+      : "";
   if (transfer.textDescription != null) {
     body =
         "$pinSnippet${device.name} is sending you text: ${transfer.textDescription}";
@@ -139,6 +138,7 @@ Future<void> showTransferNotification(
   const NotificationDetails platformChannelSpecifics = NotificationDetails(
     android: androidPlatformChannelSpecifics,
     iOS: iosPlatformChannelSpecifics,
+    macOS: iosPlatformChannelSpecifics,
   );
 
   // Use connectionId or a derivative as the notification ID (needs to be int)
@@ -146,10 +146,10 @@ Future<void> showTransferNotification(
   final notificationId = transfer.id.hashCode % 2147483647;
 
   await flutterLocalNotificationsPlugin.show(
-    notificationId,
-    'Incoming Share', // Title
-    body,
-    platformChannelSpecifics,
+    id: notificationId,
+    title: 'Incoming Share',
+    body: body,
+    notificationDetails: platformChannelSpecifics,
     payload: payload,
   );
 }
@@ -175,24 +175,25 @@ Future<void> showErrorNotification(
   const NotificationDetails platformChannelSpecifics = NotificationDetails(
     android: androidPlatformChannelSpecifics,
     iOS: iosPlatformChannelSpecifics,
+    macOS: iosPlatformChannelSpecifics,
   );
 
   final notificationId = ("${connectionId}_error").hashCode % 2147483647;
 
   await flutterLocalNotificationsPlugin.show(
-    notificationId,
-    'Transfer Failed',
-    'Failed to receive files from $deviceName: $errorMsg',
-    platformChannelSpecifics,
+    id: notificationId,
+    title: 'Transfer Failed',
+    body: 'Failed to receive files from $deviceName: $errorMsg',
+    notificationDetails: platformChannelSpecifics,
   );
 }
 
 Future<void> cancelNotification(String connectionId) async {
   final notificationId = connectionId.hashCode % 2147483647;
-  await flutterLocalNotificationsPlugin.cancel(notificationId);
+  await flutterLocalNotificationsPlugin.cancel(id: notificationId);
   // Also cancel potential error notification for the same transfer
   final errorNotificationId = ("${connectionId}_error").hashCode % 2147483647;
-  await flutterLocalNotificationsPlugin.cancel(errorNotificationId);
+  await flutterLocalNotificationsPlugin.cancel(id: errorNotificationId);
 }
 
 // --- Notification Action Handlers ---

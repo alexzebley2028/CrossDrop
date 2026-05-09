@@ -1,13 +1,15 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: wire_format.proto
-//
+// Generated from wire_format.proto.
+
 // @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -18,10 +20,25 @@ const FileMetadata$json = {
   '1': 'FileMetadata',
   '2': [
     {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
-    {'1': 'type', '3': 2, '4': 1, '5': 14, '6': '.sharing.nearby.FileMetadata.Type', '7': 'UNKNOWN', '10': 'type'},
+    {
+      '1': 'type',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.sharing.nearby.FileMetadata.Type',
+      '7': 'UNKNOWN',
+      '10': 'type'
+    },
     {'1': 'payload_id', '3': 3, '4': 1, '5': 3, '10': 'payloadId'},
     {'1': 'size', '3': 4, '4': 1, '5': 3, '10': 'size'},
-    {'1': 'mime_type', '3': 5, '4': 1, '5': 9, '7': 'application/octet-stream', '10': 'mimeType'},
+    {
+      '1': 'mime_type',
+      '3': 5,
+      '4': 1,
+      '5': 9,
+      '7': 'application/octet-stream',
+      '10': 'mimeType'
+    },
     {'1': 'id', '3': 6, '4': 1, '5': 3, '10': 'id'},
   ],
   '4': [FileMetadata_Type$json],
@@ -53,7 +70,15 @@ const TextMetadata$json = {
   '1': 'TextMetadata',
   '2': [
     {'1': 'text_title', '3': 2, '4': 1, '5': 9, '10': 'textTitle'},
-    {'1': 'type', '3': 3, '4': 1, '5': 14, '6': '.sharing.nearby.TextMetadata.Type', '7': 'UNKNOWN', '10': 'type'},
+    {
+      '1': 'type',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.sharing.nearby.TextMetadata.Type',
+      '7': 'UNKNOWN',
+      '10': 'type'
+    },
     {'1': 'payload_id', '3': 4, '4': 1, '5': 3, '10': 'payloadId'},
     {'1': 'size', '3': 5, '4': 1, '5': 3, '10': 'size'},
     {'1': 'id', '3': 6, '4': 1, '5': 3, '10': 'id'},
@@ -86,7 +111,15 @@ const WifiCredentialsMetadata$json = {
   '1': 'WifiCredentialsMetadata',
   '2': [
     {'1': 'ssid', '3': 2, '4': 1, '5': 9, '10': 'ssid'},
-    {'1': 'security_type', '3': 3, '4': 1, '5': 14, '6': '.sharing.nearby.WifiCredentialsMetadata.SecurityType', '7': 'UNKNOWN_SECURITY_TYPE', '10': 'securityType'},
+    {
+      '1': 'security_type',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.sharing.nearby.WifiCredentialsMetadata.SecurityType',
+      '7': 'UNKNOWN_SECURITY_TYPE',
+      '10': 'securityType'
+    },
     {'1': 'payload_id', '3': 4, '4': 1, '5': 3, '10': 'payloadId'},
     {'1': 'id', '3': 5, '4': 1, '5': 3, '10': 'id'},
   ],
@@ -117,8 +150,22 @@ final $typed_data.Uint8List wifiCredentialsMetadataDescriptor = $convert.base64D
 const Frame$json = {
   '1': 'Frame',
   '2': [
-    {'1': 'version', '3': 1, '4': 1, '5': 14, '6': '.sharing.nearby.Frame.Version', '10': 'version'},
-    {'1': 'v1', '3': 2, '4': 1, '5': 11, '6': '.sharing.nearby.V1Frame', '10': 'v1'},
+    {
+      '1': 'version',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.sharing.nearby.Frame.Version',
+      '10': 'version'
+    },
+    {
+      '1': 'v1',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.sharing.nearby.V1Frame',
+      '10': 'v1'
+    },
   ],
   '4': [Frame_Version$json],
 };
@@ -142,12 +189,54 @@ final $typed_data.Uint8List frameDescriptor = $convert.base64Decode(
 const V1Frame$json = {
   '1': 'V1Frame',
   '2': [
-    {'1': 'type', '3': 1, '4': 1, '5': 14, '6': '.sharing.nearby.V1Frame.FrameType', '10': 'type'},
-    {'1': 'introduction', '3': 2, '4': 1, '5': 11, '6': '.sharing.nearby.IntroductionFrame', '10': 'introduction'},
-    {'1': 'connection_response', '3': 3, '4': 1, '5': 11, '6': '.sharing.nearby.ConnectionResponseFrame', '10': 'connectionResponse'},
-    {'1': 'paired_key_encryption', '3': 4, '4': 1, '5': 11, '6': '.sharing.nearby.PairedKeyEncryptionFrame', '10': 'pairedKeyEncryption'},
-    {'1': 'paired_key_result', '3': 5, '4': 1, '5': 11, '6': '.sharing.nearby.PairedKeyResultFrame', '10': 'pairedKeyResult'},
-    {'1': 'certificate_info', '3': 6, '4': 1, '5': 11, '6': '.sharing.nearby.CertificateInfoFrame', '10': 'certificateInfo'},
+    {
+      '1': 'type',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.sharing.nearby.V1Frame.FrameType',
+      '10': 'type'
+    },
+    {
+      '1': 'introduction',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.sharing.nearby.IntroductionFrame',
+      '10': 'introduction'
+    },
+    {
+      '1': 'connection_response',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.sharing.nearby.ConnectionResponseFrame',
+      '10': 'connectionResponse'
+    },
+    {
+      '1': 'paired_key_encryption',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.sharing.nearby.PairedKeyEncryptionFrame',
+      '10': 'pairedKeyEncryption'
+    },
+    {
+      '1': 'paired_key_result',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.sharing.nearby.PairedKeyResultFrame',
+      '10': 'pairedKeyResult'
+    },
+    {
+      '1': 'certificate_info',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6': '.sharing.nearby.CertificateInfoFrame',
+      '10': 'certificateInfo'
+    },
   ],
   '4': [V1Frame_FrameType$json],
 };
@@ -185,10 +274,31 @@ final $typed_data.Uint8List v1FrameDescriptor = $convert.base64Decode(
 const IntroductionFrame$json = {
   '1': 'IntroductionFrame',
   '2': [
-    {'1': 'file_metadata', '3': 1, '4': 3, '5': 11, '6': '.sharing.nearby.FileMetadata', '10': 'fileMetadata'},
-    {'1': 'text_metadata', '3': 2, '4': 3, '5': 11, '6': '.sharing.nearby.TextMetadata', '10': 'textMetadata'},
+    {
+      '1': 'file_metadata',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.sharing.nearby.FileMetadata',
+      '10': 'fileMetadata'
+    },
+    {
+      '1': 'text_metadata',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.sharing.nearby.TextMetadata',
+      '10': 'textMetadata'
+    },
     {'1': 'required_package', '3': 3, '4': 1, '5': 9, '10': 'requiredPackage'},
-    {'1': 'wifi_credentials_metadata', '3': 4, '4': 3, '5': 11, '6': '.sharing.nearby.WifiCredentialsMetadata', '10': 'wifiCredentialsMetadata'},
+    {
+      '1': 'wifi_credentials_metadata',
+      '3': 4,
+      '4': 3,
+      '5': 11,
+      '6': '.sharing.nearby.WifiCredentialsMetadata',
+      '10': 'wifiCredentialsMetadata'
+    },
   ],
 };
 
@@ -205,7 +315,14 @@ final $typed_data.Uint8List introductionFrameDescriptor = $convert.base64Decode(
 const ConnectionResponseFrame$json = {
   '1': 'ConnectionResponseFrame',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 14, '6': '.sharing.nearby.ConnectionResponseFrame.Status', '10': 'status'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.sharing.nearby.ConnectionResponseFrame.Status',
+      '10': 'status'
+    },
   ],
   '4': [ConnectionResponseFrame_Status$json],
 };
@@ -236,7 +353,13 @@ const PairedKeyEncryptionFrame$json = {
   '2': [
     {'1': 'signed_data', '3': 1, '4': 1, '5': 12, '10': 'signedData'},
     {'1': 'secret_id_hash', '3': 2, '4': 1, '5': 12, '10': 'secretIdHash'},
-    {'1': 'optional_signed_data', '3': 3, '4': 1, '5': 12, '10': 'optionalSignedData'},
+    {
+      '1': 'optional_signed_data',
+      '3': 3,
+      '4': 1,
+      '5': 12,
+      '10': 'optionalSignedData'
+    },
   ],
 };
 
@@ -250,7 +373,14 @@ final $typed_data.Uint8List pairedKeyEncryptionFrameDescriptor = $convert.base64
 const PairedKeyResultFrame$json = {
   '1': 'PairedKeyResultFrame',
   '2': [
-    {'1': 'status', '3': 1, '4': 1, '5': 14, '6': '.sharing.nearby.PairedKeyResultFrame.Status', '10': 'status'},
+    {
+      '1': 'status',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.sharing.nearby.PairedKeyResultFrame.Status',
+      '10': 'status'
+    },
   ],
   '4': [PairedKeyResultFrame_Status$json],
 };
@@ -276,7 +406,14 @@ final $typed_data.Uint8List pairedKeyResultFrameDescriptor = $convert.base64Deco
 const CertificateInfoFrame$json = {
   '1': 'CertificateInfoFrame',
   '2': [
-    {'1': 'public_certificate', '3': 1, '4': 3, '5': 11, '6': '.sharing.nearby.PublicCertificate', '10': 'publicCertificate'},
+    {
+      '1': 'public_certificate',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.sharing.nearby.PublicCertificate',
+      '10': 'publicCertificate'
+    },
   ],
 };
 
@@ -294,8 +431,20 @@ const PublicCertificate$json = {
     {'1': 'public_key', '3': 3, '4': 1, '5': 12, '10': 'publicKey'},
     {'1': 'start_time', '3': 4, '4': 1, '5': 3, '10': 'startTime'},
     {'1': 'end_time', '3': 5, '4': 1, '5': 3, '10': 'endTime'},
-    {'1': 'encrypted_metadata_bytes', '3': 6, '4': 1, '5': 12, '10': 'encryptedMetadataBytes'},
-    {'1': 'metadata_encryption_key_tag', '3': 7, '4': 1, '5': 12, '10': 'metadataEncryptionKeyTag'},
+    {
+      '1': 'encrypted_metadata_bytes',
+      '3': 6,
+      '4': 1,
+      '5': 12,
+      '10': 'encryptedMetadataBytes'
+    },
+    {
+      '1': 'metadata_encryption_key_tag',
+      '3': 7,
+      '4': 1,
+      '5': 12,
+      '10': 'metadataEncryptionKeyTag'
+    },
   ],
 };
 
@@ -313,7 +462,14 @@ const WifiCredentials$json = {
   '1': 'WifiCredentials',
   '2': [
     {'1': 'password', '3': 1, '4': 1, '5': 9, '10': 'password'},
-    {'1': 'hidden_ssid', '3': 2, '4': 1, '5': 8, '7': 'false', '10': 'hiddenSsid'},
+    {
+      '1': 'hidden_ssid',
+      '3': 2,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'hiddenSsid'
+    },
   ],
 };
 
@@ -321,4 +477,3 @@ const WifiCredentials$json = {
 final $typed_data.Uint8List wifiCredentialsDescriptor = $convert.base64Decode(
     'Cg9XaWZpQ3JlZGVudGlhbHMSGgoIcGFzc3dvcmQYASABKAlSCHBhc3N3b3JkEiYKC2hpZGRlbl'
     '9zc2lkGAIgASgIOgVmYWxzZVIKaGlkZGVuU3NpZA==');
-

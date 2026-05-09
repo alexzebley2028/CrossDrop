@@ -96,7 +96,7 @@ class NearbyConnectionManager extends ChangeNotifier
       );
 
       _bonsoirBroadcast = BonsoirBroadcast(service: service);
-      await _bonsoirBroadcast!.ready;
+      await _bonsoirBroadcast!.initialize();
       await _bonsoirBroadcast!.start();
 
       _isBroadcasting = true;
@@ -134,41 +134,35 @@ class NearbyConnectionManager extends ChangeNotifier
     _discoveredDevices.clear(); // Clear previous results on start
 
     _bonsoirDiscovery = BonsoirDiscovery(type: '_FC9F5ED42C8A._tcp');
-    await _bonsoirDiscovery!.ready;
+    await _bonsoirDiscovery!.initialize();
 
     _bonsoirDiscovery!.eventStream!.listen(
       (event) {
         try {
-          // Add try-catch around event handling
-          if (event.service == null) return; // Ignore events without service
-
-          if (event.type == BonsoirDiscoveryEventType.discoveryServiceFound) {
-            // Attempt resolution immediately if not resolved
-            if (event.service is! ResolvedBonsoirService) {
-              print("Service ${event.service!.name} found, resolving...");
-              event.service!.resolve(_bonsoirDiscovery!.serviceResolver);
+          if (event is BonsoirDiscoveryServiceFoundEvent) {
+            final service = event.service;
+            if (service.host == null) {
+              print("Service ${service.name} found, resolving...");
+              unawaited(
+                service.resolve(_bonsoirDiscovery!.serviceResolver).catchError((
+                  Object e,
+                  StackTrace s,
+                ) {
+                  print("Error resolving service ${service.name}: $e\n$s");
+                }),
+              );
             } else {
-              // Already resolved (maybe from cache?)
-              _handleDiscoveredOrResolvedService(
-                event.service as ResolvedBonsoirService,
-              );
+              _handleDiscoveredOrResolvedService(service);
             }
-          } else if (event.type ==
-              BonsoirDiscoveryEventType.discoveryServiceResolved) {
-            // Explicitly handle resolved event
-            if (event.service is ResolvedBonsoirService) {
-              _handleDiscoveredOrResolvedService(
-                event.service as ResolvedBonsoirService,
-              );
-            }
-          } else if (event.type ==
-              BonsoirDiscoveryEventType.discoveryServiceLost) {
-            _handleLostService(event.service!);
+          } else if (event is BonsoirDiscoveryServiceResolvedEvent) {
+            _handleDiscoveredOrResolvedService(event.service);
+          } else if (event is BonsoirDiscoveryServiceUpdatedEvent) {
+            _handleDiscoveredOrResolvedService(event.service);
+          } else if (event is BonsoirDiscoveryServiceLostEvent) {
+            _handleLostService(event.service);
           }
         } catch (e, s) {
-          print(
-            "Error handling discovery event for ${event.service?.name}: $e\n$s",
-          );
+          print("Error handling discovery event $event: $e\n$s");
         }
       },
       onError: (e, s) {
@@ -293,7 +287,7 @@ class NearbyConnectionManager extends ChangeNotifier
   }
 
   // Combined handler for found and resolved services
-  void _handleDiscoveredOrResolvedService(ResolvedBonsoirService service) {
+  void _handleDiscoveredOrResolvedService(BonsoirService service) {
     final endpointId = _getEndpointIdFromService(service);
     if (endpointId == null || endpointId == _endpointId) return;
 
@@ -306,13 +300,6 @@ class NearbyConnectionManager extends ChangeNotifier
       return;
     }
 
-    // ignore: unnecessary_null_comparison
-    if (txt == null) {
-      print(
-        "Ignoring service ${service.name}: missing TXT attributes even after resolution",
-      );
-      return;
-    }
     final endpointInfoEncoded = txt['n'];
     if (endpointInfoEncoded == null) {
       print("Ignoring service ${service.name}: missing 'n' attribute in TXT");

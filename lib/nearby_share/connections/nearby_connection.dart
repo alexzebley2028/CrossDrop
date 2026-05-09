@@ -232,11 +232,10 @@ abstract class NearbyConnection {
       signatureScheme: sm.SigScheme.HMAC_SHA256,
       iv: iv,
       // publicMetadata needs GcmMetadata
-      publicMetadata:
-          securegcm.GcmMetadata(
-            type: securegcm.Type.DEVICE_TO_DEVICE_MESSAGE,
-            version: 1,
-          ).writeToBuffer(),
+      publicMetadata: securegcm.GcmMetadata(
+        type: securegcm.Type.DEVICE_TO_DEVICE_MESSAGE,
+        version: 1,
+      ).writeToBuffer(),
     );
 
     final headerAndBody = sm.HeaderAndBody(header: header, body: encryptedBody);
@@ -300,10 +299,9 @@ abstract class NearbyConnection {
       flags: 1, // LAST_CHUNK
     );
     final eofTransfer = offline.PayloadTransferFrame(
-      packetType:
-          offline
-              .PayloadTransferFrame_PacketType
-              .DATA, // Still DATA type for chunk flags
+      packetType: offline
+          .PayloadTransferFrame_PacketType
+          .DATA, // Still DATA type for chunk flags
       payloadHeader: header, // Repeat header
       payloadChunk: eofChunk,
     );

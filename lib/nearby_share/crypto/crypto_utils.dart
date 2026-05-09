@@ -124,10 +124,9 @@ Uint8List _bigIntToBytes(BigInt number, int size) {
   String hex = number.toRadixString(16);
   if (hex.length % 2 != 0) hex = '0$hex';
   final paddedHex = hex.padLeft(size * 2, '0');
-  final finalHex =
-      paddedHex.length > size * 2
-          ? paddedHex.substring(paddedHex.length - size * 2)
-          : paddedHex;
+  final finalHex = paddedHex.length > size * 2
+      ? paddedHex.substring(paddedHex.length - size * 2)
+      : paddedHex;
   final byteList = Uint8List(size);
   for (int i = 0; i < size; i++) {
     final start = i * 2;

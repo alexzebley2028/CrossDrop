@@ -1,13 +1,15 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: securegcm.proto
-//
+// Generated from securegcm.proto.
+
 // @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -23,9 +25,10 @@ const AppleDeviceDiagonalMils$json = {
 };
 
 /// Descriptor for `AppleDeviceDiagonalMils`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List appleDeviceDiagonalMilsDescriptor = $convert.base64Decode(
-    'ChdBcHBsZURldmljZURpYWdvbmFsTWlscxIQCgtBUFBMRV9QSE9ORRCgHxIOCglBUFBMRV9QQU'
-    'QQ3D0=');
+final $typed_data.Uint8List appleDeviceDiagonalMilsDescriptor =
+    $convert.base64Decode(
+        'ChdBcHBsZURldmljZURpYWdvbmFsTWlscxIQCgtBUFBMRV9QSE9ORRCgHxIOCglBUFBMRV9QQU'
+        'QQ3D0=');
 
 @$core.Deprecated('Use deviceTypeDescriptor instead')
 const DeviceType$json = {
@@ -142,42 +145,238 @@ const GcmDeviceInfo$json = {
   '1': 'GcmDeviceInfo',
   '2': [
     {'1': 'android_device_id', '3': 1, '4': 1, '5': 6, '10': 'androidDeviceId'},
-    {'1': 'gcm_registration_id', '3': 102, '4': 1, '5': 12, '10': 'gcmRegistrationId'},
-    {'1': 'apn_registration_id', '3': 202, '4': 1, '5': 12, '10': 'apnRegistrationId'},
-    {'1': 'notification_enabled', '3': 203, '4': 1, '5': 8, '7': 'true', '10': 'notificationEnabled'},
-    {'1': 'bluetooth_mac_address', '3': 302, '4': 1, '5': 9, '10': 'bluetoothMacAddress'},
-    {'1': 'device_master_key_hash', '3': 103, '4': 1, '5': 12, '10': 'deviceMasterKeyHash'},
+    {
+      '1': 'gcm_registration_id',
+      '3': 102,
+      '4': 1,
+      '5': 12,
+      '10': 'gcmRegistrationId'
+    },
+    {
+      '1': 'apn_registration_id',
+      '3': 202,
+      '4': 1,
+      '5': 12,
+      '10': 'apnRegistrationId'
+    },
+    {
+      '1': 'notification_enabled',
+      '3': 203,
+      '4': 1,
+      '5': 8,
+      '7': 'true',
+      '10': 'notificationEnabled'
+    },
+    {
+      '1': 'bluetooth_mac_address',
+      '3': 302,
+      '4': 1,
+      '5': 9,
+      '10': 'bluetoothMacAddress'
+    },
+    {
+      '1': 'device_master_key_hash',
+      '3': 103,
+      '4': 1,
+      '5': 12,
+      '10': 'deviceMasterKeyHash'
+    },
     {'1': 'user_public_key', '3': 4, '4': 2, '5': 12, '10': 'userPublicKey'},
     {'1': 'device_model', '3': 7, '4': 1, '5': 9, '10': 'deviceModel'},
     {'1': 'locale', '3': 8, '4': 1, '5': 9, '10': 'locale'},
     {'1': 'key_handle', '3': 9, '4': 1, '5': 12, '10': 'keyHandle'},
     {'1': 'counter', '3': 12, '4': 1, '5': 3, '7': '0', '10': 'counter'},
-    {'1': 'device_os_version', '3': 13, '4': 1, '5': 9, '10': 'deviceOsVersion'},
-    {'1': 'device_os_version_code', '3': 14, '4': 1, '5': 3, '10': 'deviceOsVersionCode'},
-    {'1': 'device_os_release', '3': 15, '4': 1, '5': 9, '10': 'deviceOsRelease'},
-    {'1': 'device_os_codename', '3': 16, '4': 1, '5': 9, '10': 'deviceOsCodename'},
-    {'1': 'device_software_version', '3': 17, '4': 1, '5': 9, '10': 'deviceSoftwareVersion'},
-    {'1': 'device_software_version_code', '3': 18, '4': 1, '5': 3, '10': 'deviceSoftwareVersionCode'},
-    {'1': 'device_software_package', '3': 19, '4': 1, '5': 9, '10': 'deviceSoftwarePackage'},
-    {'1': 'device_display_diagonal_mils', '3': 22, '4': 1, '5': 5, '10': 'deviceDisplayDiagonalMils'},
-    {'1': 'device_authzen_version', '3': 24, '4': 1, '5': 5, '10': 'deviceAuthzenVersion'},
+    {
+      '1': 'device_os_version',
+      '3': 13,
+      '4': 1,
+      '5': 9,
+      '10': 'deviceOsVersion'
+    },
+    {
+      '1': 'device_os_version_code',
+      '3': 14,
+      '4': 1,
+      '5': 3,
+      '10': 'deviceOsVersionCode'
+    },
+    {
+      '1': 'device_os_release',
+      '3': 15,
+      '4': 1,
+      '5': 9,
+      '10': 'deviceOsRelease'
+    },
+    {
+      '1': 'device_os_codename',
+      '3': 16,
+      '4': 1,
+      '5': 9,
+      '10': 'deviceOsCodename'
+    },
+    {
+      '1': 'device_software_version',
+      '3': 17,
+      '4': 1,
+      '5': 9,
+      '10': 'deviceSoftwareVersion'
+    },
+    {
+      '1': 'device_software_version_code',
+      '3': 18,
+      '4': 1,
+      '5': 3,
+      '10': 'deviceSoftwareVersionCode'
+    },
+    {
+      '1': 'device_software_package',
+      '3': 19,
+      '4': 1,
+      '5': 9,
+      '10': 'deviceSoftwarePackage'
+    },
+    {
+      '1': 'device_display_diagonal_mils',
+      '3': 22,
+      '4': 1,
+      '5': 5,
+      '10': 'deviceDisplayDiagonalMils'
+    },
+    {
+      '1': 'device_authzen_version',
+      '3': 24,
+      '4': 1,
+      '5': 5,
+      '10': 'deviceAuthzenVersion'
+    },
     {'1': 'long_device_id', '3': 29, '4': 1, '5': 12, '10': 'longDeviceId'},
-    {'1': 'device_manufacturer', '3': 31, '4': 1, '5': 9, '10': 'deviceManufacturer'},
-    {'1': 'device_type', '3': 32, '4': 1, '5': 14, '6': '.securegcm.DeviceType', '7': 'ANDROID', '10': 'deviceType'},
-    {'1': 'using_secure_screenlock', '3': 400, '4': 1, '5': 8, '7': 'false', '10': 'usingSecureScreenlock'},
-    {'1': 'auto_unlock_screenlock_supported', '3': 401, '4': 1, '5': 8, '7': 'false', '10': 'autoUnlockScreenlockSupported'},
-    {'1': 'auto_unlock_screenlock_enabled', '3': 402, '4': 1, '5': 8, '7': 'false', '10': 'autoUnlockScreenlockEnabled'},
-    {'1': 'bluetooth_radio_supported', '3': 403, '4': 1, '5': 8, '7': 'false', '10': 'bluetoothRadioSupported'},
-    {'1': 'bluetooth_radio_enabled', '3': 404, '4': 1, '5': 8, '7': 'false', '10': 'bluetoothRadioEnabled'},
-    {'1': 'mobile_data_supported', '3': 405, '4': 1, '5': 8, '7': 'false', '10': 'mobileDataSupported'},
-    {'1': 'tethering_supported', '3': 406, '4': 1, '5': 8, '7': 'false', '10': 'tetheringSupported'},
-    {'1': 'ble_radio_supported', '3': 407, '4': 1, '5': 8, '7': 'false', '10': 'bleRadioSupported'},
-    {'1': 'pixel_experience', '3': 408, '4': 1, '5': 8, '7': 'false', '10': 'pixelExperience'},
-    {'1': 'arc_plus_plus', '3': 409, '4': 1, '5': 8, '7': 'false', '10': 'arcPlusPlus'},
-    {'1': 'is_screenlock_state_flaky', '3': 410, '4': 1, '5': 8, '7': 'false', '10': 'isScreenlockStateFlaky'},
-    {'1': 'supported_software_features', '3': 411, '4': 3, '5': 14, '6': '.securegcm.SoftwareFeature', '10': 'supportedSoftwareFeatures'},
-    {'1': 'enabled_software_features', '3': 412, '4': 3, '5': 14, '6': '.securegcm.SoftwareFeature', '10': 'enabledSoftwareFeatures'},
-    {'1': 'enrollment_session_id', '3': 1000, '4': 1, '5': 12, '10': 'enrollmentSessionId'},
+    {
+      '1': 'device_manufacturer',
+      '3': 31,
+      '4': 1,
+      '5': 9,
+      '10': 'deviceManufacturer'
+    },
+    {
+      '1': 'device_type',
+      '3': 32,
+      '4': 1,
+      '5': 14,
+      '6': '.securegcm.DeviceType',
+      '7': 'ANDROID',
+      '10': 'deviceType'
+    },
+    {
+      '1': 'using_secure_screenlock',
+      '3': 400,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'usingSecureScreenlock'
+    },
+    {
+      '1': 'auto_unlock_screenlock_supported',
+      '3': 401,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'autoUnlockScreenlockSupported'
+    },
+    {
+      '1': 'auto_unlock_screenlock_enabled',
+      '3': 402,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'autoUnlockScreenlockEnabled'
+    },
+    {
+      '1': 'bluetooth_radio_supported',
+      '3': 403,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'bluetoothRadioSupported'
+    },
+    {
+      '1': 'bluetooth_radio_enabled',
+      '3': 404,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'bluetoothRadioEnabled'
+    },
+    {
+      '1': 'mobile_data_supported',
+      '3': 405,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'mobileDataSupported'
+    },
+    {
+      '1': 'tethering_supported',
+      '3': 406,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'tetheringSupported'
+    },
+    {
+      '1': 'ble_radio_supported',
+      '3': 407,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'bleRadioSupported'
+    },
+    {
+      '1': 'pixel_experience',
+      '3': 408,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'pixelExperience'
+    },
+    {
+      '1': 'arc_plus_plus',
+      '3': 409,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'arcPlusPlus'
+    },
+    {
+      '1': 'is_screenlock_state_flaky',
+      '3': 410,
+      '4': 1,
+      '5': 8,
+      '7': 'false',
+      '10': 'isScreenlockStateFlaky'
+    },
+    {
+      '1': 'supported_software_features',
+      '3': 411,
+      '4': 3,
+      '5': 14,
+      '6': '.securegcm.SoftwareFeature',
+      '10': 'supportedSoftwareFeatures'
+    },
+    {
+      '1': 'enabled_software_features',
+      '3': 412,
+      '4': 3,
+      '5': 14,
+      '6': '.securegcm.SoftwareFeature',
+      '10': 'enabledSoftwareFeatures'
+    },
+    {
+      '1': 'enrollment_session_id',
+      '3': 1000,
+      '4': 1,
+      '5': 12,
+      '10': 'enrollmentSessionId'
+    },
     {'1': 'oauth_token', '3': 1001, '4': 1, '5': 9, '10': 'oauthToken'},
   ],
 };
@@ -227,7 +426,14 @@ final $typed_data.Uint8List gcmDeviceInfoDescriptor = $convert.base64Decode(
 const GcmMetadata$json = {
   '1': 'GcmMetadata',
   '2': [
-    {'1': 'type', '3': 1, '4': 2, '5': 14, '6': '.securegcm.Type', '10': 'type'},
+    {
+      '1': 'type',
+      '3': 1,
+      '4': 2,
+      '5': 14,
+      '6': '.securegcm.Type',
+      '10': 'type'
+    },
     {'1': 'version', '3': 2, '4': 1, '5': 5, '7': '0', '10': 'version'},
   ],
 };
@@ -246,8 +452,8 @@ const Tickle$json = {
 };
 
 /// Descriptor for `Tickle`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List tickleDescriptor = $convert.base64Decode(
-    'CgZUaWNrbGUSHwoLZXhwaXJ5X3RpbWUYASABKAZSCmV4cGlyeVRpbWU=');
+final $typed_data.Uint8List tickleDescriptor = $convert
+    .base64Decode('CgZUaWNrbGUSHwoLZXhwaXJ5X3RpbWUYASABKAZSCmV4cGlyeVRpbWU=');
 
 @$core.Deprecated('Use loginNotificationInfoDescriptor instead')
 const LoginNotificationInfo$json = {
@@ -266,4 +472,3 @@ final $typed_data.Uint8List loginNotificationInfoDescriptor = $convert.base64Dec
     'ChVMb2dpbk5vdGlmaWNhdGlvbkluZm8SIwoNY3JlYXRpb25fdGltZRgCIAEoBlIMY3JlYXRpb2'
     '5UaW1lEhQKBWVtYWlsGAMgASgJUgVlbWFpbBISCgRob3N0GAQgASgJUgRob3N0EhYKBnNvdXJj'
     'ZRgFIAEoCVIGc291cmNlEh0KCmV2ZW50X3R5cGUYBiABKAlSCWV2ZW50VHlwZQ==');
-

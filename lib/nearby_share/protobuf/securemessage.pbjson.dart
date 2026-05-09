@@ -1,13 +1,15 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: securemessage.proto
-//
+// Generated from securemessage.proto.
+
 // @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -38,8 +40,8 @@ const EncScheme$json = {
 };
 
 /// Descriptor for `EncScheme`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List encSchemeDescriptor = $convert.base64Decode(
-    'CglFbmNTY2hlbWUSCAoETk9ORRABEg8KC0FFU18yNTZfQ0JDEAI=');
+final $typed_data.Uint8List encSchemeDescriptor = $convert
+    .base64Decode('CglFbmNTY2hlbWUSCAoETk9ORRABEg8KC0FFU18yNTZfQ0JDEAI=');
 
 @$core.Deprecated('Use publicKeyTypeDescriptor instead')
 const PublicKeyType$json = {
@@ -74,13 +76,46 @@ final $typed_data.Uint8List secureMessageDescriptor = $convert.base64Decode(
 const Header$json = {
   '1': 'Header',
   '2': [
-    {'1': 'signature_scheme', '3': 1, '4': 2, '5': 14, '6': '.securemessage.SigScheme', '10': 'signatureScheme'},
-    {'1': 'encryption_scheme', '3': 2, '4': 2, '5': 14, '6': '.securemessage.EncScheme', '10': 'encryptionScheme'},
-    {'1': 'verification_key_id', '3': 3, '4': 1, '5': 12, '10': 'verificationKeyId'},
-    {'1': 'decryption_key_id', '3': 4, '4': 1, '5': 12, '10': 'decryptionKeyId'},
+    {
+      '1': 'signature_scheme',
+      '3': 1,
+      '4': 2,
+      '5': 14,
+      '6': '.securemessage.SigScheme',
+      '10': 'signatureScheme'
+    },
+    {
+      '1': 'encryption_scheme',
+      '3': 2,
+      '4': 2,
+      '5': 14,
+      '6': '.securemessage.EncScheme',
+      '10': 'encryptionScheme'
+    },
+    {
+      '1': 'verification_key_id',
+      '3': 3,
+      '4': 1,
+      '5': 12,
+      '10': 'verificationKeyId'
+    },
+    {
+      '1': 'decryption_key_id',
+      '3': 4,
+      '4': 1,
+      '5': 12,
+      '10': 'decryptionKeyId'
+    },
     {'1': 'iv', '3': 5, '4': 1, '5': 12, '10': 'iv'},
     {'1': 'public_metadata', '3': 6, '4': 1, '5': 12, '10': 'publicMetadata'},
-    {'1': 'associated_data_length', '3': 7, '4': 1, '5': 13, '7': '0', '10': 'associatedDataLength'},
+    {
+      '1': 'associated_data_length',
+      '3': 7,
+      '4': 1,
+      '5': 13,
+      '7': '0',
+      '10': 'associatedDataLength'
+    },
   ],
 };
 
@@ -98,7 +133,14 @@ final $typed_data.Uint8List headerDescriptor = $convert.base64Decode(
 const HeaderAndBody$json = {
   '1': 'HeaderAndBody',
   '2': [
-    {'1': 'header', '3': 1, '4': 2, '5': 11, '6': '.securemessage.Header', '10': 'header'},
+    {
+      '1': 'header',
+      '3': 1,
+      '4': 2,
+      '5': 11,
+      '6': '.securemessage.Header',
+      '10': 'header'
+    },
     {'1': 'body', '3': 2, '4': 2, '5': 12, '10': 'body'},
   ],
 };
@@ -158,17 +200,45 @@ const DhPublicKey$json = {
 };
 
 /// Descriptor for `DhPublicKey`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List dhPublicKeyDescriptor = $convert.base64Decode(
-    'CgtEaFB1YmxpY0tleRIMCgF5GAEgAigMUgF5');
+final $typed_data.Uint8List dhPublicKeyDescriptor =
+    $convert.base64Decode('CgtEaFB1YmxpY0tleRIMCgF5GAEgAigMUgF5');
 
 @$core.Deprecated('Use genericPublicKeyDescriptor instead')
 const GenericPublicKey$json = {
   '1': 'GenericPublicKey',
   '2': [
-    {'1': 'type', '3': 1, '4': 2, '5': 14, '6': '.securemessage.PublicKeyType', '10': 'type'},
-    {'1': 'ec_p256_public_key', '3': 2, '4': 1, '5': 11, '6': '.securemessage.EcP256PublicKey', '10': 'ecP256PublicKey'},
-    {'1': 'rsa2048_public_key', '3': 3, '4': 1, '5': 11, '6': '.securemessage.SimpleRsaPublicKey', '10': 'rsa2048PublicKey'},
-    {'1': 'dh2048_public_key', '3': 4, '4': 1, '5': 11, '6': '.securemessage.DhPublicKey', '10': 'dh2048PublicKey'},
+    {
+      '1': 'type',
+      '3': 1,
+      '4': 2,
+      '5': 14,
+      '6': '.securemessage.PublicKeyType',
+      '10': 'type'
+    },
+    {
+      '1': 'ec_p256_public_key',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.securemessage.EcP256PublicKey',
+      '10': 'ecP256PublicKey'
+    },
+    {
+      '1': 'rsa2048_public_key',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.securemessage.SimpleRsaPublicKey',
+      '10': 'rsa2048PublicKey'
+    },
+    {
+      '1': 'dh2048_public_key',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.securemessage.DhPublicKey',
+      '10': 'dh2048PublicKey'
+    },
   ],
 };
 
@@ -180,4 +250,3 @@ final $typed_data.Uint8List genericPublicKeyDescriptor = $convert.base64Decode(
     'kYAyABKAsyIS5zZWN1cmVtZXNzYWdlLlNpbXBsZVJzYVB1YmxpY0tleVIQcnNhMjA0OFB1Ymxp'
     'Y0tleRJGChFkaDIwNDhfcHVibGljX2tleRgEIAEoCzIaLnNlY3VyZW1lc3NhZ2UuRGhQdWJsaW'
     'NLZXlSD2RoMjA0OFB1YmxpY0tleQ==');
-

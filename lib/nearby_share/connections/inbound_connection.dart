@@ -388,8 +388,9 @@ class InboundNearbyConnection extends NearbyConnection {
       throw NearbyUkey2Exception();
     }
 
-    final nextProto =
-        clientInit.hasNextProtocol() ? clientInit.nextProtocol : null;
+    final nextProto = clientInit.hasNextProtocol()
+        ? clientInit.nextProtocol
+        : null;
     if (nextProto != "AES_256_CBC-HMAC_SHA256") {
       // Note: Swift code checks exact match. Let's be strict too.
       print(
@@ -518,9 +519,8 @@ class InboundNearbyConnection extends NearbyConnection {
                         print(
                           "Inbound $id: Sent encrypted PairedKeyEncryption",
                         );
-                        _currentState =
-                            InboundState
-                                .sentConnectionResponse; // State after *sending* our response+pairedKey
+                        _currentState = InboundState
+                            .sentConnectionResponse; // State after *sending* our response+pairedKey
                       })
                       .catchError(_handleAsyncError);
                 })
@@ -607,10 +607,9 @@ class InboundNearbyConnection extends NearbyConnection {
         final fileMeta = ShareFileMetadata(
           name: p.basename(destPath),
           size: file.size.toInt(),
-          mimeType:
-              file.mimeType.isNotEmpty
-                  ? file.mimeType
-                  : 'application/octet-stream',
+          mimeType: file.mimeType.isNotEmpty
+              ? file.mimeType
+              : 'application/octet-stream',
         );
         filesMeta.add(fileMeta);
         transferredFiles[payloadIdInt] = InternalFileInfo(
@@ -637,12 +636,9 @@ class InboundNearbyConnection extends NearbyConnection {
           return;
         }
         _textPayloadID = payloadIdInt;
-        textDesc =
-            textMeta.textTitle.isNotEmpty
-                ? textMeta.textTitle
-                : (textMeta.type == wire.TextMetadata_Type.URL
-                    ? "URL"
-                    : "Text");
+        textDesc = textMeta.textTitle.isNotEmpty
+            ? textMeta.textTitle
+            : (textMeta.type == wire.TextMetadata_Type.URL ? "URL" : "Text");
 
         if (textMeta.type == wire.TextMetadata_Type.TEXT ||
             textMeta.type == wire.TextMetadata_Type.ADDRESS ||

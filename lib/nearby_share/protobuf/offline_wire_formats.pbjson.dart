@@ -1,13 +1,15 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: offline_wire_formats.proto
-//
+// Generated from offline_wire_formats.proto.
+
 // @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -17,8 +19,22 @@ import 'dart:typed_data' as $typed_data;
 const OfflineFrame$json = {
   '1': 'OfflineFrame',
   '2': [
-    {'1': 'version', '3': 1, '4': 1, '5': 14, '6': '.location.nearby.connections.OfflineFrame.Version', '10': 'version'},
-    {'1': 'v1', '3': 2, '4': 1, '5': 11, '6': '.location.nearby.connections.V1Frame', '10': 'v1'},
+    {
+      '1': 'version',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.location.nearby.connections.OfflineFrame.Version',
+      '10': 'version'
+    },
+    {
+      '1': 'v1',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.V1Frame',
+      '10': 'v1'
+    },
   ],
   '4': [OfflineFrame_Version$json],
 };
@@ -43,14 +59,70 @@ final $typed_data.Uint8List offlineFrameDescriptor = $convert.base64Decode(
 const V1Frame$json = {
   '1': 'V1Frame',
   '2': [
-    {'1': 'type', '3': 1, '4': 1, '5': 14, '6': '.location.nearby.connections.V1Frame.FrameType', '10': 'type'},
-    {'1': 'connection_request', '3': 2, '4': 1, '5': 11, '6': '.location.nearby.connections.ConnectionRequestFrame', '10': 'connectionRequest'},
-    {'1': 'connection_response', '3': 3, '4': 1, '5': 11, '6': '.location.nearby.connections.ConnectionResponseFrame', '10': 'connectionResponse'},
-    {'1': 'payload_transfer', '3': 4, '4': 1, '5': 11, '6': '.location.nearby.connections.PayloadTransferFrame', '10': 'payloadTransfer'},
-    {'1': 'bandwidth_upgrade_negotiation', '3': 5, '4': 1, '5': 11, '6': '.location.nearby.connections.BandwidthUpgradeNegotiationFrame', '10': 'bandwidthUpgradeNegotiation'},
-    {'1': 'keep_alive', '3': 6, '4': 1, '5': 11, '6': '.location.nearby.connections.KeepAliveFrame', '10': 'keepAlive'},
-    {'1': 'disconnection', '3': 7, '4': 1, '5': 11, '6': '.location.nearby.connections.DisconnectionFrame', '10': 'disconnection'},
-    {'1': 'paired_key_encryption', '3': 8, '4': 1, '5': 11, '6': '.location.nearby.connections.PairedKeyEncryptionFrame', '10': 'pairedKeyEncryption'},
+    {
+      '1': 'type',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.location.nearby.connections.V1Frame.FrameType',
+      '10': 'type'
+    },
+    {
+      '1': 'connection_request',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.ConnectionRequestFrame',
+      '10': 'connectionRequest'
+    },
+    {
+      '1': 'connection_response',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.ConnectionResponseFrame',
+      '10': 'connectionResponse'
+    },
+    {
+      '1': 'payload_transfer',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.PayloadTransferFrame',
+      '10': 'payloadTransfer'
+    },
+    {
+      '1': 'bandwidth_upgrade_negotiation',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.BandwidthUpgradeNegotiationFrame',
+      '10': 'bandwidthUpgradeNegotiation'
+    },
+    {
+      '1': 'keep_alive',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.KeepAliveFrame',
+      '10': 'keepAlive'
+    },
+    {
+      '1': 'disconnection',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.DisconnectionFrame',
+      '10': 'disconnection'
+    },
+    {
+      '1': 'paired_key_encryption',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.PairedKeyEncryptionFrame',
+      '10': 'pairedKeyEncryption'
+    },
   ],
   '4': [V1Frame_FrameType$json],
 };
@@ -99,11 +171,37 @@ const ConnectionRequestFrame$json = {
     {'1': 'endpoint_name', '3': 2, '4': 1, '5': 9, '10': 'endpointName'},
     {'1': 'handshake_data', '3': 3, '4': 1, '5': 12, '10': 'handshakeData'},
     {'1': 'nonce', '3': 4, '4': 1, '5': 5, '10': 'nonce'},
-    {'1': 'mediums', '3': 5, '4': 3, '5': 14, '6': '.location.nearby.connections.ConnectionRequestFrame.Medium', '10': 'mediums'},
+    {
+      '1': 'mediums',
+      '3': 5,
+      '4': 3,
+      '5': 14,
+      '6': '.location.nearby.connections.ConnectionRequestFrame.Medium',
+      '10': 'mediums'
+    },
     {'1': 'endpoint_info', '3': 6, '4': 1, '5': 12, '10': 'endpointInfo'},
-    {'1': 'medium_metadata', '3': 7, '4': 1, '5': 11, '6': '.location.nearby.connections.MediumMetadata', '10': 'mediumMetadata'},
-    {'1': 'keep_alive_interval_millis', '3': 8, '4': 1, '5': 5, '10': 'keepAliveIntervalMillis'},
-    {'1': 'keep_alive_timeout_millis', '3': 9, '4': 1, '5': 5, '10': 'keepAliveTimeoutMillis'},
+    {
+      '1': 'medium_metadata',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.MediumMetadata',
+      '10': 'mediumMetadata'
+    },
+    {
+      '1': 'keep_alive_interval_millis',
+      '3': 8,
+      '4': 1,
+      '5': 5,
+      '10': 'keepAliveIntervalMillis'
+    },
+    {
+      '1': 'keep_alive_timeout_millis',
+      '3': 9,
+      '4': 1,
+      '5': 5,
+      '10': 'keepAliveTimeoutMillis'
+    },
     {'1': 'device_type', '3': 10, '4': 1, '5': 5, '7': '0', '10': 'deviceType'},
     {'1': 'device_info', '3': 11, '4': 1, '5': 12, '10': 'deviceInfo'},
   ],
@@ -163,10 +261,37 @@ const ConnectionResponseFrame$json = {
       '10': 'status',
     },
     {'1': 'handshake_data', '3': 2, '4': 1, '5': 12, '10': 'handshakeData'},
-    {'1': 'response', '3': 3, '4': 1, '5': 14, '6': '.location.nearby.connections.ConnectionResponseFrame.ResponseStatus', '10': 'response'},
-    {'1': 'os_info', '3': 4, '4': 1, '5': 11, '6': '.location.nearby.connections.OsInfo', '10': 'osInfo'},
-    {'1': 'multiplex_socket_bitmask', '3': 5, '4': 1, '5': 5, '10': 'multiplexSocketBitmask'},
-    {'1': 'nearby_connections_version', '3': 6, '4': 1, '5': 5, '10': 'nearbyConnectionsVersion'},
+    {
+      '1': 'response',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6':
+          '.location.nearby.connections.ConnectionResponseFrame.ResponseStatus',
+      '10': 'response'
+    },
+    {
+      '1': 'os_info',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.OsInfo',
+      '10': 'osInfo'
+    },
+    {
+      '1': 'multiplex_socket_bitmask',
+      '3': 5,
+      '4': 1,
+      '5': 5,
+      '10': 'multiplexSocketBitmask'
+    },
+    {
+      '1': 'nearby_connections_version',
+      '3': 6,
+      '4': 1,
+      '5': 5,
+      '10': 'nearbyConnectionsVersion'
+    },
   ],
   '4': [ConnectionResponseFrame_ResponseStatus$json],
 };
@@ -196,12 +321,44 @@ final $typed_data.Uint8List connectionResponseFrameDescriptor = $convert.base64D
 const PayloadTransferFrame$json = {
   '1': 'PayloadTransferFrame',
   '2': [
-    {'1': 'packet_type', '3': 1, '4': 1, '5': 14, '6': '.location.nearby.connections.PayloadTransferFrame.PacketType', '10': 'packetType'},
-    {'1': 'payload_header', '3': 2, '4': 1, '5': 11, '6': '.location.nearby.connections.PayloadTransferFrame.PayloadHeader', '10': 'payloadHeader'},
-    {'1': 'payload_chunk', '3': 3, '4': 1, '5': 11, '6': '.location.nearby.connections.PayloadTransferFrame.PayloadChunk', '10': 'payloadChunk'},
-    {'1': 'control_message', '3': 4, '4': 1, '5': 11, '6': '.location.nearby.connections.PayloadTransferFrame.ControlMessage', '10': 'controlMessage'},
+    {
+      '1': 'packet_type',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.location.nearby.connections.PayloadTransferFrame.PacketType',
+      '10': 'packetType'
+    },
+    {
+      '1': 'payload_header',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.PayloadTransferFrame.PayloadHeader',
+      '10': 'payloadHeader'
+    },
+    {
+      '1': 'payload_chunk',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.PayloadTransferFrame.PayloadChunk',
+      '10': 'payloadChunk'
+    },
+    {
+      '1': 'control_message',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.PayloadTransferFrame.ControlMessage',
+      '10': 'controlMessage'
+    },
   ],
-  '3': [PayloadTransferFrame_PayloadHeader$json, PayloadTransferFrame_PayloadChunk$json, PayloadTransferFrame_ControlMessage$json],
+  '3': [
+    PayloadTransferFrame_PayloadHeader$json,
+    PayloadTransferFrame_PayloadChunk$json,
+    PayloadTransferFrame_ControlMessage$json
+  ],
   '4': [PayloadTransferFrame_PacketType$json],
 };
 
@@ -210,7 +367,15 @@ const PayloadTransferFrame_PayloadHeader$json = {
   '1': 'PayloadHeader',
   '2': [
     {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
-    {'1': 'type', '3': 2, '4': 1, '5': 14, '6': '.location.nearby.connections.PayloadTransferFrame.PayloadHeader.PayloadType', '10': 'type'},
+    {
+      '1': 'type',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6':
+          '.location.nearby.connections.PayloadTransferFrame.PayloadHeader.PayloadType',
+      '10': 'type'
+    },
     {'1': 'total_size', '3': 3, '4': 1, '5': 3, '10': 'totalSize'},
     {'1': 'is_sensitive', '3': 4, '4': 1, '5': 8, '10': 'isSensitive'},
     {'1': 'file_name', '3': 5, '4': 1, '5': 9, '10': 'fileName'},
@@ -253,7 +418,15 @@ const PayloadTransferFrame_PayloadChunk_Flags$json = {
 const PayloadTransferFrame_ControlMessage$json = {
   '1': 'ControlMessage',
   '2': [
-    {'1': 'event', '3': 1, '4': 1, '5': 14, '6': '.location.nearby.connections.PayloadTransferFrame.ControlMessage.EventType', '10': 'event'},
+    {
+      '1': 'event',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6':
+          '.location.nearby.connections.PayloadTransferFrame.ControlMessage.EventType',
+      '10': 'event'
+    },
     {'1': 'offset', '3': 2, '4': 1, '5': 3, '10': 'offset'},
   ],
   '4': [PayloadTransferFrame_ControlMessage_EventType$json],
@@ -309,12 +482,48 @@ final $typed_data.Uint8List payloadTransferFrameDescriptor = $convert.base64Deco
 const BandwidthUpgradeNegotiationFrame$json = {
   '1': 'BandwidthUpgradeNegotiationFrame',
   '2': [
-    {'1': 'event_type', '3': 1, '4': 1, '5': 14, '6': '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.EventType', '10': 'eventType'},
-    {'1': 'upgrade_path_info', '3': 2, '4': 1, '5': 11, '6': '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo', '10': 'upgradePathInfo'},
-    {'1': 'client_introduction', '3': 3, '4': 1, '5': 11, '6': '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.ClientIntroduction', '10': 'clientIntroduction'},
-    {'1': 'client_introduction_ack', '3': 4, '4': 1, '5': 11, '6': '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.ClientIntroductionAck', '10': 'clientIntroductionAck'},
+    {
+      '1': 'event_type',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6':
+          '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.EventType',
+      '10': 'eventType'
+    },
+    {
+      '1': 'upgrade_path_info',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6':
+          '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo',
+      '10': 'upgradePathInfo'
+    },
+    {
+      '1': 'client_introduction',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6':
+          '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.ClientIntroduction',
+      '10': 'clientIntroduction'
+    },
+    {
+      '1': 'client_introduction_ack',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6':
+          '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.ClientIntroductionAck',
+      '10': 'clientIntroductionAck'
+    },
   ],
-  '3': [BandwidthUpgradeNegotiationFrame_UpgradePathInfo$json, BandwidthUpgradeNegotiationFrame_ClientIntroduction$json, BandwidthUpgradeNegotiationFrame_ClientIntroductionAck$json],
+  '3': [
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo$json,
+    BandwidthUpgradeNegotiationFrame_ClientIntroduction$json,
+    BandwidthUpgradeNegotiationFrame_ClientIntroductionAck$json
+  ],
   '4': [BandwidthUpgradeNegotiationFrame_EventType$json],
 };
 
@@ -322,22 +531,98 @@ const BandwidthUpgradeNegotiationFrame$json = {
 const BandwidthUpgradeNegotiationFrame_UpgradePathInfo$json = {
   '1': 'UpgradePathInfo',
   '2': [
-    {'1': 'medium', '3': 1, '4': 1, '5': 14, '6': '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.Medium', '10': 'medium'},
-    {'1': 'wifi_hotspot_credentials', '3': 2, '4': 1, '5': 11, '6': '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials', '10': 'wifiHotspotCredentials'},
-    {'1': 'wifi_lan_socket', '3': 3, '4': 1, '5': 11, '6': '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiLanSocket', '10': 'wifiLanSocket'},
-    {'1': 'bluetooth_credentials', '3': 4, '4': 1, '5': 11, '6': '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.BluetoothCredentials', '10': 'bluetoothCredentials'},
-    {'1': 'wifi_aware_credentials', '3': 5, '4': 1, '5': 11, '6': '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareCredentials', '10': 'wifiAwareCredentials'},
-    {'1': 'wifi_direct_credentials', '3': 6, '4': 1, '5': 11, '6': '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials', '10': 'wifiDirectCredentials'},
-    {'1': 'web_rtc_credentials', '3': 8, '4': 1, '5': 11, '6': '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WebRtcCredentials', '10': 'webRtcCredentials'},
-    {'1': 'supports_disabling_encryption', '3': 7, '4': 1, '5': 8, '10': 'supportsDisablingEncryption'},
-    {'1': 'supports_client_introduction_ack', '3': 9, '4': 1, '5': 8, '10': 'supportsClientIntroductionAck'},
+    {
+      '1': 'medium',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6':
+          '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.Medium',
+      '10': 'medium'
+    },
+    {
+      '1': 'wifi_hotspot_credentials',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6':
+          '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials',
+      '10': 'wifiHotspotCredentials'
+    },
+    {
+      '1': 'wifi_lan_socket',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6':
+          '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiLanSocket',
+      '10': 'wifiLanSocket'
+    },
+    {
+      '1': 'bluetooth_credentials',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6':
+          '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.BluetoothCredentials',
+      '10': 'bluetoothCredentials'
+    },
+    {
+      '1': 'wifi_aware_credentials',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6':
+          '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiAwareCredentials',
+      '10': 'wifiAwareCredentials'
+    },
+    {
+      '1': 'wifi_direct_credentials',
+      '3': 6,
+      '4': 1,
+      '5': 11,
+      '6':
+          '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials',
+      '10': 'wifiDirectCredentials'
+    },
+    {
+      '1': 'web_rtc_credentials',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6':
+          '.location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WebRtcCredentials',
+      '10': 'webRtcCredentials'
+    },
+    {
+      '1': 'supports_disabling_encryption',
+      '3': 7,
+      '4': 1,
+      '5': 8,
+      '10': 'supportsDisablingEncryption'
+    },
+    {
+      '1': 'supports_client_introduction_ack',
+      '3': 9,
+      '4': 1,
+      '5': 8,
+      '10': 'supportsClientIntroductionAck'
+    },
   ],
-  '3': [BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials$json, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket$json, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_BluetoothCredentials$json, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareCredentials$json, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials$json, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials$json],
+  '3': [
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials$json,
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket$json,
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo_BluetoothCredentials$json,
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareCredentials$json,
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials$json,
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials$json
+  ],
   '4': [BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium$json],
 };
 
 @$core.Deprecated('Use bandwidthUpgradeNegotiationFrameDescriptor instead')
-const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials$json = {
+const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials$json =
+    {
   '1': 'WifiHotspotCredentials',
   '2': [
     {'1': 'ssid', '3': 1, '4': 1, '5': 9, '10': 'ssid'},
@@ -358,7 +643,8 @@ const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket$json = {
 };
 
 @$core.Deprecated('Use bandwidthUpgradeNegotiationFrameDescriptor instead')
-const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_BluetoothCredentials$json = {
+const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_BluetoothCredentials$json =
+    {
   '1': 'BluetoothCredentials',
   '2': [
     {'1': 'service_name', '3': 1, '4': 1, '5': 9, '10': 'serviceName'},
@@ -367,7 +653,8 @@ const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_BluetoothCredentials$json
 };
 
 @$core.Deprecated('Use bandwidthUpgradeNegotiationFrameDescriptor instead')
-const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareCredentials$json = {
+const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareCredentials$json =
+    {
   '1': 'WifiAwareCredentials',
   '2': [
     {'1': 'service_id', '3': 1, '4': 1, '5': 9, '10': 'serviceId'},
@@ -377,7 +664,8 @@ const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareCredentials$json
 };
 
 @$core.Deprecated('Use bandwidthUpgradeNegotiationFrameDescriptor instead')
-const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials$json = {
+const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials$json =
+    {
   '1': 'WifiDirectCredentials',
   '2': [
     {'1': 'ssid', '3': 1, '4': 1, '5': 9, '10': 'ssid'},
@@ -389,11 +677,19 @@ const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials$jso
 };
 
 @$core.Deprecated('Use bandwidthUpgradeNegotiationFrameDescriptor instead')
-const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials$json = {
+const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials$json =
+    {
   '1': 'WebRtcCredentials',
   '2': [
     {'1': 'peer_id', '3': 1, '4': 1, '5': 9, '10': 'peerId'},
-    {'1': 'location_hint', '3': 2, '4': 1, '5': 11, '6': '.location.nearby.connections.LocationHint', '10': 'locationHint'},
+    {
+      '1': 'location_hint',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.LocationHint',
+      '10': 'locationHint'
+    },
   ],
 };
 
@@ -424,7 +720,13 @@ const BandwidthUpgradeNegotiationFrame_ClientIntroduction$json = {
   '1': 'ClientIntroduction',
   '2': [
     {'1': 'endpoint_id', '3': 1, '4': 1, '5': 9, '10': 'endpointId'},
-    {'1': 'supports_disabling_encryption', '3': 2, '4': 1, '5': 8, '10': 'supportsDisablingEncryption'},
+    {
+      '1': 'supports_disabling_encryption',
+      '3': 2,
+      '4': 1,
+      '5': 8,
+      '10': 'supportsDisablingEncryption'
+    },
   ],
 };
 
@@ -513,15 +815,27 @@ const KeepAliveFrame$json = {
 };
 
 /// Descriptor for `KeepAliveFrame`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List keepAliveFrameDescriptor = $convert.base64Decode(
-    'Cg5LZWVwQWxpdmVGcmFtZRIQCgNhY2sYASABKAhSA2Fjaw==');
+final $typed_data.Uint8List keepAliveFrameDescriptor =
+    $convert.base64Decode('Cg5LZWVwQWxpdmVGcmFtZRIQCgNhY2sYASABKAhSA2Fjaw==');
 
 @$core.Deprecated('Use disconnectionFrameDescriptor instead')
 const DisconnectionFrame$json = {
   '1': 'DisconnectionFrame',
   '2': [
-    {'1': 'request_safe_to_disconnect', '3': 1, '4': 1, '5': 8, '10': 'requestSafeToDisconnect'},
-    {'1': 'ack_safe_to_disconnect', '3': 2, '4': 1, '5': 8, '10': 'ackSafeToDisconnect'},
+    {
+      '1': 'request_safe_to_disconnect',
+      '3': 1,
+      '4': 1,
+      '5': 8,
+      '10': 'requestSafeToDisconnect'
+    },
+    {
+      '1': 'ack_safe_to_disconnect',
+      '3': 2,
+      '4': 1,
+      '5': 8,
+      '10': 'ackSafeToDisconnect'
+    },
   ],
 };
 
@@ -540,9 +854,10 @@ const PairedKeyEncryptionFrame$json = {
 };
 
 /// Descriptor for `PairedKeyEncryptionFrame`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List pairedKeyEncryptionFrameDescriptor = $convert.base64Decode(
-    'ChhQYWlyZWRLZXlFbmNyeXB0aW9uRnJhbWUSHwoLc2lnbmVkX2RhdGEYASABKAxSCnNpZ25lZE'
-    'RhdGE=');
+final $typed_data.Uint8List pairedKeyEncryptionFrameDescriptor =
+    $convert.base64Decode(
+        'ChhQYWlyZWRLZXlFbmNyeXB0aW9uRnJhbWUSHwoLc2lnbmVkX2RhdGEYASABKAxSCnNpZ25lZE'
+        'RhdGE=');
 
 @$core.Deprecated('Use mediumMetadataDescriptor instead')
 const MediumMetadata$json = {
@@ -553,12 +868,54 @@ const MediumMetadata$json = {
     {'1': 'ip_address', '3': 3, '4': 1, '5': 12, '10': 'ipAddress'},
     {'1': 'supports_6_ghz', '3': 4, '4': 1, '5': 8, '10': 'supports6Ghz'},
     {'1': 'mobile_radio', '3': 5, '4': 1, '5': 8, '10': 'mobileRadio'},
-    {'1': 'ap_frequency', '3': 6, '4': 1, '5': 5, '7': '-1', '10': 'apFrequency'},
-    {'1': 'available_channels', '3': 7, '4': 1, '5': 11, '6': '.location.nearby.connections.AvailableChannels', '10': 'availableChannels'},
-    {'1': 'wifi_direct_cli_usable_channels', '3': 8, '4': 1, '5': 11, '6': '.location.nearby.connections.WifiDirectCliUsableChannels', '10': 'wifiDirectCliUsableChannels'},
-    {'1': 'wifi_lan_usable_channels', '3': 9, '4': 1, '5': 11, '6': '.location.nearby.connections.WifiLanUsableChannels', '10': 'wifiLanUsableChannels'},
-    {'1': 'wifi_aware_usable_channels', '3': 10, '4': 1, '5': 11, '6': '.location.nearby.connections.WifiAwareUsableChannels', '10': 'wifiAwareUsableChannels'},
-    {'1': 'wifi_hotspot_sta_usable_channels', '3': 11, '4': 1, '5': 11, '6': '.location.nearby.connections.WifiHotspotStaUsableChannels', '10': 'wifiHotspotStaUsableChannels'},
+    {
+      '1': 'ap_frequency',
+      '3': 6,
+      '4': 1,
+      '5': 5,
+      '7': '-1',
+      '10': 'apFrequency'
+    },
+    {
+      '1': 'available_channels',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.AvailableChannels',
+      '10': 'availableChannels'
+    },
+    {
+      '1': 'wifi_direct_cli_usable_channels',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.WifiDirectCliUsableChannels',
+      '10': 'wifiDirectCliUsableChannels'
+    },
+    {
+      '1': 'wifi_lan_usable_channels',
+      '3': 9,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.WifiLanUsableChannels',
+      '10': 'wifiLanUsableChannels'
+    },
+    {
+      '1': 'wifi_aware_usable_channels',
+      '3': 10,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.WifiAwareUsableChannels',
+      '10': 'wifiAwareUsableChannels'
+    },
+    {
+      '1': 'wifi_hotspot_sta_usable_channels',
+      '3': 11,
+      '4': 1,
+      '5': 11,
+      '6': '.location.nearby.connections.WifiHotspotStaUsableChannels',
+      '10': 'wifiHotspotStaUsableChannels'
+    },
   ],
 };
 
@@ -615,9 +972,10 @@ const WifiDirectCliUsableChannels$json = {
 };
 
 /// Descriptor for `WifiDirectCliUsableChannels`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List wifiDirectCliUsableChannelsDescriptor = $convert.base64Decode(
-    'ChtXaWZpRGlyZWN0Q2xpVXNhYmxlQ2hhbm5lbHMSHgoIY2hhbm5lbHMYASADKAVCAhABUghjaG'
-    'FubmVscw==');
+final $typed_data.Uint8List wifiDirectCliUsableChannelsDescriptor =
+    $convert.base64Decode(
+        'ChtXaWZpRGlyZWN0Q2xpVXNhYmxlQ2hhbm5lbHMSHgoIY2hhbm5lbHMYASADKAVCAhABUghjaG'
+        'FubmVscw==');
 
 @$core.Deprecated('Use wifiLanUsableChannelsDescriptor instead')
 const WifiLanUsableChannels$json = {
@@ -655,9 +1013,10 @@ const WifiAwareUsableChannels$json = {
 };
 
 /// Descriptor for `WifiAwareUsableChannels`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List wifiAwareUsableChannelsDescriptor = $convert.base64Decode(
-    'ChdXaWZpQXdhcmVVc2FibGVDaGFubmVscxIeCghjaGFubmVscxgBIAMoBUICEAFSCGNoYW5uZW'
-    'xz');
+final $typed_data.Uint8List wifiAwareUsableChannelsDescriptor =
+    $convert.base64Decode(
+        'ChdXaWZpQXdhcmVVc2FibGVDaGFubmVscxIeCghjaGFubmVscxgBIAMoBUICEAFSCGNoYW5uZW'
+        'xz');
 
 @$core.Deprecated('Use wifiHotspotStaUsableChannelsDescriptor instead')
 const WifiHotspotStaUsableChannels$json = {
@@ -675,16 +1034,24 @@ const WifiHotspotStaUsableChannels$json = {
 };
 
 /// Descriptor for `WifiHotspotStaUsableChannels`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List wifiHotspotStaUsableChannelsDescriptor = $convert.base64Decode(
-    'ChxXaWZpSG90c3BvdFN0YVVzYWJsZUNoYW5uZWxzEh4KCGNoYW5uZWxzGAEgAygFQgIQAVIIY2'
-    'hhbm5lbHM=');
+final $typed_data.Uint8List wifiHotspotStaUsableChannelsDescriptor =
+    $convert.base64Decode(
+        'ChxXaWZpSG90c3BvdFN0YVVzYWJsZUNoYW5uZWxzEh4KCGNoYW5uZWxzGAEgAygFQgIQAVIIY2'
+        'hhbm5lbHM=');
 
 @$core.Deprecated('Use locationHintDescriptor instead')
 const LocationHint$json = {
   '1': 'LocationHint',
   '2': [
     {'1': 'location', '3': 1, '4': 1, '5': 9, '10': 'location'},
-    {'1': 'format', '3': 2, '4': 1, '5': 14, '6': '.location.nearby.connections.LocationStandard.Format', '10': 'format'},
+    {
+      '1': 'format',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.location.nearby.connections.LocationStandard.Format',
+      '10': 'format'
+    },
   ],
 };
 
@@ -719,7 +1086,14 @@ final $typed_data.Uint8List locationStandardDescriptor = $convert.base64Decode(
 const OsInfo$json = {
   '1': 'OsInfo',
   '2': [
-    {'1': 'type', '3': 1, '4': 1, '5': 14, '6': '.location.nearby.connections.OsInfo.OsType', '10': 'type'},
+    {
+      '1': 'type',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.location.nearby.connections.OsInfo.OsType',
+      '10': 'type'
+    },
   ],
   '4': [OsInfo_OsType$json],
 };
@@ -743,4 +1117,3 @@ final $typed_data.Uint8List osInfoDescriptor = $convert.base64Decode(
     'luZm8uT3NUeXBlUgR0eXBlIlwKBk9zVHlwZRITCg9VTktOT1dOX09TX1RZUEUQABILCgdBTkRS'
     'T0lEEAESDQoJQ0hST01FX09TEAISCwoHV0lORE9XUxADEgkKBUFQUExFEAQSCQoFTElOVVgQZA'
     '==');
-

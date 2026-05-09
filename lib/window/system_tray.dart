@@ -31,13 +31,17 @@ class AppSystemTray {
     await menu.buildFrom([
       MenuItemLabel(label: 'Visible to everyone', enabled: false),
       MenuItemLabel(label: 'Device name: $deviceName', enabled: false),
-      MenuItemLabel(label: 'Settings', onClicked: (menuItem) => windowManager.show()),
       MenuItemLabel(
-          label: 'Quit',
-          onClicked: (menuItem) {
-            windowManager.close();
-            exit(0);
-          }),
+        label: 'Settings',
+        onClicked: (menuItem) => windowManager.show(),
+      ),
+      MenuItemLabel(
+        label: 'Quit',
+        onClicked: (menuItem) {
+          windowManager.close();
+          exit(0);
+        },
+      ),
     ]);
     await _systemTray.setContextMenu(menu);
   }

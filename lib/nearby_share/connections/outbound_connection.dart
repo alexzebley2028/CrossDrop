@@ -315,8 +315,8 @@ class OutboundNearbyConnection extends NearbyConnection {
       messageType: ukey.Ukey2Message_Type.CLIENT_FINISH,
       messageData: finish.writeToBuffer(),
     );
-    _ukeyClientFinishMsgData =
-        finishMsg.writeToBuffer(); // Store raw bytes for later
+    _ukeyClientFinishMsgData = finishMsg
+        .writeToBuffer(); // Store raw bytes for later
 
     // Calculate commitment for ClientInit
     final digest = await Sha512().hash(_ukeyClientFinishMsgData!);
@@ -337,8 +337,8 @@ class OutboundNearbyConnection extends NearbyConnection {
       messageData: clientInit.writeToBuffer(),
     );
 
-    ukeyClientInitMsgData =
-        clientInitMsg.writeToBuffer(); // Store raw bytes for HKDF
+    ukeyClientInitMsgData = clientInitMsg
+        .writeToBuffer(); // Store raw bytes for HKDF
     sendFrame(ukeyClientInitMsgData!);
     _currentState = OutboundState.sentUkeyClientInit;
     print("Outbound $id: Sent UKEY2 ClientInit");

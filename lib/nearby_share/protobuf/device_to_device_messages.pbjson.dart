@@ -1,13 +1,15 @@
+// This is a generated file - do not edit.
 //
-//  Generated code. Do not modify.
-//  source: device_to_device_messages.proto
-//
+// Generated from device_to_device_messages.proto.
+
 // @dart = 3.3
 
 // ignore_for_file: annotate_overrides, camel_case_types, comment_references
-// ignore_for_file: constant_identifier_names, library_prefixes
-// ignore_for_file: non_constant_identifier_names, prefer_final_fields
-// ignore_for_file: unnecessary_import, unnecessary_this, unused_import
+// ignore_for_file: constant_identifier_names
+// ignore_for_file: curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -22,8 +24,8 @@ const Curve$json = {
 };
 
 /// Descriptor for `Curve`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List curveDescriptor = $convert.base64Decode(
-    'CgVDdXJ2ZRIMCghFRF8yNTUxORAB');
+final $typed_data.Uint8List curveDescriptor =
+    $convert.base64Decode('CgVDdXJ2ZRIMCghFRF8yNTUxORAB');
 
 @$core.Deprecated('Use deviceToDeviceMessageDescriptor instead')
 const DeviceToDeviceMessage$json = {
@@ -43,8 +45,22 @@ final $typed_data.Uint8List deviceToDeviceMessageDescriptor = $convert.base64Dec
 const InitiatorHello$json = {
   '1': 'InitiatorHello',
   '2': [
-    {'1': 'public_dh_key', '3': 1, '4': 1, '5': 11, '6': '.securemessage.GenericPublicKey', '10': 'publicDhKey'},
-    {'1': 'protocol_version', '3': 2, '4': 1, '5': 5, '7': '0', '10': 'protocolVersion'},
+    {
+      '1': 'public_dh_key',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.securemessage.GenericPublicKey',
+      '10': 'publicDhKey'
+    },
+    {
+      '1': 'protocol_version',
+      '3': 2,
+      '4': 1,
+      '5': 5,
+      '7': '0',
+      '10': 'protocolVersion'
+    },
   ],
 };
 
@@ -58,8 +74,22 @@ final $typed_data.Uint8List initiatorHelloDescriptor = $convert.base64Decode(
 const ResponderHello$json = {
   '1': 'ResponderHello',
   '2': [
-    {'1': 'public_dh_key', '3': 1, '4': 1, '5': 11, '6': '.securemessage.GenericPublicKey', '10': 'publicDhKey'},
-    {'1': 'protocol_version', '3': 2, '4': 1, '5': 5, '7': '0', '10': 'protocolVersion'},
+    {
+      '1': 'public_dh_key',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.securemessage.GenericPublicKey',
+      '10': 'publicDhKey'
+    },
+    {
+      '1': 'protocol_version',
+      '3': 2,
+      '4': 1,
+      '5': 5,
+      '7': '0',
+      '10': 'protocolVersion'
+    },
   ],
 };
 
@@ -73,7 +103,14 @@ final $typed_data.Uint8List responderHelloDescriptor = $convert.base64Decode(
 const EcPoint$json = {
   '1': 'EcPoint',
   '2': [
-    {'1': 'curve', '3': 1, '4': 2, '5': 14, '6': '.securegcm.Curve', '10': 'curve'},
+    {
+      '1': 'curve',
+      '3': 1,
+      '4': 2,
+      '5': 14,
+      '6': '.securegcm.Curve',
+      '10': 'curve'
+    },
     {'1': 'x', '3': 2, '4': 2, '5': 12, '10': 'x'},
     {'1': 'y', '3': 3, '4': 2, '5': 12, '10': 'y'},
   ],
@@ -89,7 +126,14 @@ const SpakeHandshakeMessage$json = {
   '1': 'SpakeHandshakeMessage',
   '2': [
     {'1': 'flow_number', '3': 1, '4': 1, '5': 5, '10': 'flowNumber'},
-    {'1': 'ec_point', '3': 2, '4': 1, '5': 11, '6': '.securegcm.EcPoint', '10': 'ecPoint'},
+    {
+      '1': 'ec_point',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.securegcm.EcPoint',
+      '10': 'ecPoint'
+    },
     {'1': 'hash_value', '3': 3, '4': 1, '5': 12, '10': 'hashValue'},
     {'1': 'payload', '3': 4, '4': 1, '5': 12, '10': 'payload'},
   ],
@@ -100,4 +144,3 @@ final $typed_data.Uint8List spakeHandshakeMessageDescriptor = $convert.base64Dec
     'ChVTcGFrZUhhbmRzaGFrZU1lc3NhZ2USHwoLZmxvd19udW1iZXIYASABKAVSCmZsb3dOdW1iZX'
     'ISLQoIZWNfcG9pbnQYAiABKAsyEi5zZWN1cmVnY20uRWNQb2ludFIHZWNQb2ludBIdCgpoYXNo'
     'X3ZhbHVlGAMgASgMUgloYXNoVmFsdWUSGAoHcGF5bG9hZBgEIAEoDFIHcGF5bG9hZA==');
-

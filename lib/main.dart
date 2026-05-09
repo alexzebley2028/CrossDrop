@@ -147,9 +147,8 @@ class _AppState extends State<App> implements NearbyEventsListener {
         break;
       case AnimationPhase.fadeOut:
         setState(
-          () =>
-              _currentShapeIndex =
-                  (_currentShapeIndex + 1) % animationShapes.length,
+          () => _currentShapeIndex =
+              (_currentShapeIndex + 1) % animationShapes.length,
         );
         _animationPhase = AnimationPhase.idle;
         nextPhaseDelay = Duration.zero;
