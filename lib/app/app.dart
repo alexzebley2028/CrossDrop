@@ -401,13 +401,20 @@ class _AppState extends State<App> implements NearbyEventsListener {
 
     return MaterialApp(
       title: AppConfig.name,
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: appThemeSeedColor),
+      ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: appThemeSeedColor,
+          brightness: Brightness.dark,
+        ),
+      ),
       themeMode: appTheme.mode,
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: Platform.isIOS ? AppBar() : null,
-        body: SingleChildScrollView(
+        body: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
@@ -418,44 +425,67 @@ class _AppState extends State<App> implements NearbyEventsListener {
                 animationDuration: _currentAnimationDuration,
               ),
               const SizedBox(height: 20),
-              OutgoingSendSection(
-                isPickingOutgoingFiles: _isPickingOutgoingFiles,
-                outgoingFilePaths: _outgoingFilePaths,
-                status: _outgoingStatus,
-                pin: _outgoingPin,
-                progress: _outgoingProgress,
-                error: _outgoingError,
-                devices: manager.discoveredDevices,
-                isDiscovering: manager.isDiscovering,
-                busy:
-                    _outgoingConnectionId != null ||
-                    _outgoingTargetDeviceId != null,
-                selectedDeviceId: _outgoingTargetDeviceId,
-                selectedDevice: _outgoingTargetDevice,
-                onPickFiles: () => unawaited(_pickOutgoingFiles()),
-                onSendToDevice: (device) =>
-                    unawaited(_sendSelectedFilesToDevice(device)),
-                onCancel: () => unawaited(_clearOutgoingSelection()),
-              ),
-              const SizedBox(height: 20),
-              DeviceNameField(
-                controller: _deviceNameController,
-                isEditing: _isTextFieldEditing,
-                onChanged: (_) => setState(() => _isTextFieldEditing = true),
-                onSave: () => unawaited(_saveDeviceName()),
-              ),
-              if (_pendingTransfers.isNotEmpty) ...[
-                const SizedBox(height: 20),
-                for (final entry in _pendingTransfers.entries)
-                  TransferRequestPanel(
-                    transfer: entry.value.metadata,
-                    device: entry.value.device,
-                    onAccept: () =>
-                        unawaited(_respondToPendingTransfer(entry.key, true)),
-                    onDecline: () =>
-                        unawaited(_respondToPendingTransfer(entry.key, false)),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_outgoingFilePaths.isNotEmpty)
+                        OutgoingSendPanel(
+                          outgoingFilePaths: _outgoingFilePaths,
+                          status: _outgoingStatus,
+                          pin: _outgoingPin,
+                          progress: _outgoingProgress,
+                          error: _outgoingError,
+                          devices: manager.discoveredDevices,
+                          isDiscovering: manager.isDiscovering,
+                          busy:
+                              _outgoingConnectionId != null ||
+                              _outgoingTargetDeviceId != null,
+                          selectedDeviceId: _outgoingTargetDeviceId,
+                          selectedDevice: _outgoingTargetDevice,
+                          onSendToDevice: (device) =>
+                              unawaited(_sendSelectedFilesToDevice(device)),
+                          onCancel: () => unawaited(_clearOutgoingSelection()),
+                        ),
+                      if (_pendingTransfers.isNotEmpty) ...[
+                        if (_outgoingFilePaths.isNotEmpty)
+                          const SizedBox(height: 20),
+                        for (final entry in _pendingTransfers.entries)
+                          TransferRequestPanel(
+                            transfer: entry.value.metadata,
+                            device: entry.value.device,
+                            onAccept: () => unawaited(
+                              _respondToPendingTransfer(entry.key, true),
+                            ),
+                            onDecline: () => unawaited(
+                              _respondToPendingTransfer(entry.key, false),
+                            ),
+                          ),
+                      ],
+                    ],
                   ),
-              ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  OutgoingSendButton(
+                    isPickingOutgoingFiles: _isPickingOutgoingFiles,
+                    onPressed: () => unawaited(_pickOutgoingFiles()),
+                  ),
+                  const SizedBox(height: 12),
+                  DeviceNameField(
+                    controller: _deviceNameController,
+                    isEditing: _isTextFieldEditing,
+                    onChanged: (_) =>
+                        setState(() => _isTextFieldEditing = true),
+                    onSave: () => unawaited(_saveDeviceName()),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

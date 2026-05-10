@@ -2,8 +2,28 @@ import 'package:crossdrop/nearby_share/api/models.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
-class OutgoingSendSection extends StatelessWidget {
+class OutgoingSendButton extends StatelessWidget {
   final bool isPickingOutgoingFiles;
+  final VoidCallback onPressed;
+
+  const OutgoingSendButton({
+    super.key,
+    required this.isPickingOutgoingFiles,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: isPickingOutgoingFiles ? null : onPressed,
+      icon: const Icon(Icons.upload_file),
+      label: Text(isPickingOutgoingFiles ? 'Selecting...' : 'Send files...'),
+      style: FilledButton.styleFrom(minimumSize: const Size(132, 48)),
+    );
+  }
+}
+
+class OutgoingSendPanel extends StatelessWidget {
   final List<String> outgoingFilePaths;
   final String? status;
   final String? pin;
@@ -14,13 +34,11 @@ class OutgoingSendSection extends StatelessWidget {
   final bool busy;
   final String? selectedDeviceId;
   final RemoteDeviceInfo? selectedDevice;
-  final VoidCallback onPickFiles;
   final ValueChanged<RemoteDeviceInfo> onSendToDevice;
   final VoidCallback onCancel;
 
-  const OutgoingSendSection({
+  const OutgoingSendPanel({
     super.key,
-    required this.isPickingOutgoingFiles,
     required this.outgoingFilePaths,
     required this.status,
     required this.pin,
@@ -31,7 +49,6 @@ class OutgoingSendSection extends StatelessWidget {
     required this.busy,
     required this.selectedDeviceId,
     required this.selectedDevice,
-    required this.onPickFiles,
     required this.onSendToDevice,
     required this.onCancel,
   });
@@ -41,70 +58,6 @@ class OutgoingSendSection extends StatelessWidget {
     final selectedFilesLabel = outgoingFilePaths.length == 1
         ? p.basename(outgoingFilePaths.single)
         : '${outgoingFilePaths.length} files selected';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        FilledButton.icon(
-          onPressed: isPickingOutgoingFiles ? null : onPickFiles,
-          icon: const Icon(Icons.upload_file),
-          label: Text(
-            isPickingOutgoingFiles ? 'Selecting...' : 'Send files...',
-          ),
-        ),
-        if (outgoingFilePaths.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _OutgoingSendPanel(
-            selectedFilesLabel: selectedFilesLabel,
-            status: status,
-            pin: pin,
-            progress: progress,
-            error: error,
-            devices: devices,
-            isDiscovering: isDiscovering,
-            busy: busy,
-            selectedDeviceId: selectedDeviceId,
-            selectedDevice: selectedDevice,
-            onSendToDevice: onSendToDevice,
-            onCancel: onCancel,
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _OutgoingSendPanel extends StatelessWidget {
-  final String selectedFilesLabel;
-  final String? status;
-  final String? pin;
-  final double? progress;
-  final Exception? error;
-  final List<RemoteDeviceInfo> devices;
-  final bool isDiscovering;
-  final bool busy;
-  final String? selectedDeviceId;
-  final RemoteDeviceInfo? selectedDevice;
-  final ValueChanged<RemoteDeviceInfo> onSendToDevice;
-  final VoidCallback onCancel;
-
-  const _OutgoingSendPanel({
-    required this.selectedFilesLabel,
-    required this.status,
-    required this.pin,
-    required this.progress,
-    required this.error,
-    required this.devices,
-    required this.isDiscovering,
-    required this.busy,
-    required this.selectedDeviceId,
-    required this.selectedDevice,
-    required this.onSendToDevice,
-    required this.onCancel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final statusText = status ?? 'Choose a nearby device';
     final visibleDevices = <RemoteDeviceInfo>[...devices];

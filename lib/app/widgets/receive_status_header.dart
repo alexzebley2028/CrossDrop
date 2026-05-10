@@ -1,4 +1,5 @@
 import 'package:crossdrop/animations.dart';
+import 'package:crossdrop/app_theme.dart';
 import 'package:flutter/material.dart';
 
 class ReceiveStatusHeader extends StatelessWidget {
@@ -36,7 +37,7 @@ class ReceiveStatusHeader extends StatelessWidget {
               height: 140,
               decoration: ShapeDecoration(
                 shape: animationShapes[shapeIndex],
-                color: const Color.fromRGBO(13, 85, 201, 1.0),
+                color: appThemeSeedColor,
               ),
             ),
           ),
