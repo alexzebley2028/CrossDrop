@@ -154,6 +154,9 @@ class _TransferStatusRow extends StatelessWidget {
           ],
         );
       case PendingTransferStatus.finished:
+        if (onOpenFile == null && onShowInFileManager == null) {
+          return const Text('Saved in CrossDrop');
+        }
         return Align(
           alignment: Alignment.centerRight,
           child: Wrap(
@@ -161,16 +164,18 @@ class _TransferStatusRow extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              FilledButton.tonalIcon(
-                onPressed: onOpenFile,
-                icon: const Icon(Icons.open_in_new),
-                label: const Text('Open'),
-              ),
-              FilledButton.tonalIcon(
-                onPressed: onShowInFileManager,
-                icon: const Icon(Icons.folder_open),
-                label: Text(_showInFileManagerLabel),
-              ),
+              if (onOpenFile != null)
+                FilledButton.tonalIcon(
+                  onPressed: onOpenFile,
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Open'),
+                ),
+              if (onShowInFileManager != null)
+                FilledButton.tonalIcon(
+                  onPressed: onShowInFileManager,
+                  icon: const Icon(Icons.folder_open),
+                  label: Text(_showInFileManagerLabel),
+                ),
             ],
           ),
         );

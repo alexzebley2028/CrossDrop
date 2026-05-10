@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:crossdrop/app/app.dart';
 import 'package:crossdrop/app/file_paths.dart';
+import 'package:crossdrop/app/mobile_app.dart';
 import 'package:crossdrop/app/notification_actions.dart';
 import 'package:crossdrop/app/window_setup.dart';
 import 'package:crossdrop/app_theme.dart';
@@ -12,9 +15,12 @@ Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final initialOutgoingFilePaths = filePathsFromArgs(args);
+  final useMobileShell = Platform.isIOS || Platform.isAndroid;
 
   await initializeNotifications(handleNotificationResponse);
-  await configureMainWindow();
+  if (!useMobileShell) {
+    await configureMainWindow();
+  }
 
   runApp(
     MultiProvider(
@@ -22,7 +28,9 @@ Future<void> main(List<String> args) async {
         ChangeNotifierProvider(create: (_) => NearbyConnectionManager()),
         ChangeNotifierProvider(create: (_) => AppTheme()),
       ],
-      child: App(initialOutgoingFilePaths: initialOutgoingFilePaths),
+      child: useMobileShell
+          ? MobileApp(initialOutgoingFilePaths: initialOutgoingFilePaths)
+          : App(initialOutgoingFilePaths: initialOutgoingFilePaths),
     ),
   );
 }

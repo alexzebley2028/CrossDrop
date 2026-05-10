@@ -11,6 +11,8 @@ const Size minimumWindowSize = Size(360, 480);
 const Size outgoingWindowSize = Size(440, 700);
 
 Future<void> configureMainWindow() async {
+  if (!_supportsDesktopWindowManagement) return;
+
   await windowManager.ensureInitialized();
   final windowOptions = WindowOptions(
     backgroundColor: Colors.transparent,
@@ -40,6 +42,8 @@ Future<void> configureMainWindow() async {
 }
 
 Future<void> ensureWindowSizeAtLeast(Size targetSize) async {
+  if (!_supportsDesktopWindowManagement) return;
+
   try {
     final currentSize = await windowManager.getSize();
     final nextSize = Size(
@@ -57,3 +61,6 @@ Future<void> ensureWindowSizeAtLeast(Size targetSize) async {
     print('Failed to resize window for outgoing transfer: $e\n$s');
   }
 }
+
+bool get _supportsDesktopWindowManagement =>
+    Platform.isLinux || Platform.isMacOS || Platform.isWindows;

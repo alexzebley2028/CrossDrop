@@ -1,6 +1,9 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
+
+const _fileActionsChannel = MethodChannel('crossdrop/file_actions');
 
 Future<void> revealFileInFileManager(String path) async {
   final entityType = FileSystemEntity.typeSync(path);
@@ -47,6 +50,11 @@ Future<void> openFileWithDefaultApp(String path) async {
   final entityType = FileSystemEntity.typeSync(path);
   if (entityType == FileSystemEntityType.notFound) {
     throw FileSystemException('File does not exist', path);
+  }
+
+  if (Platform.isIOS) {
+    await _fileActionsChannel.invokeMethod<void>('openFile', {'path': path});
+    return;
   }
 
   if (Platform.isMacOS) {

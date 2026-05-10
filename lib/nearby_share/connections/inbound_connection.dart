@@ -610,15 +610,15 @@ class InboundNearbyConnection extends NearbyConnection {
 
     // Prepare file info if files are present
     if (introduction.fileMetadata.isNotEmpty) {
-      final downloadsDir = await getDownloadsDirectory();
-      if (downloadsDir == null) {
+      final destinationDir = await _transferDestinationDirectory();
+      if (destinationDir == null) {
         // Handle error: Unable to get downloads directory
         await rejectTransfer(
           reason: wire.ConnectionResponseFrame_Status.NOT_ENOUGH_SPACE,
         ); // Or a different error?
         return;
       }
-      final downloadsPath = downloadsDir.path;
+      final downloadsPath = destinationDir.path;
 
       for (final file in introduction.fileMetadata) {
         // Ensure payloadId is treated as int
@@ -675,14 +675,14 @@ class InboundNearbyConnection extends NearbyConnection {
         if (textMeta.type == wire.TextMetadata_Type.TEXT ||
             textMeta.type == wire.TextMetadata_Type.ADDRESS ||
             textMeta.type == wire.TextMetadata_Type.PHONE_NUMBER) {
-          final downloadsDir = await getDownloadsDirectory();
-          if (downloadsDir == null) {
+          final destinationDir = await _transferDestinationDirectory();
+          if (destinationDir == null) {
             await rejectTransfer(
               reason: wire.ConnectionResponseFrame_Status.NOT_ENOUGH_SPACE,
             );
             return;
           }
-          final downloadsPath = downloadsDir.path;
+          final downloadsPath = destinationDir.path;
           final timestamp = DateTime.now()
               .toIso8601String()
               .replaceAll(':', '.')
@@ -912,6 +912,21 @@ class InboundNearbyConnection extends NearbyConnection {
     // Basic sanitization: replace reserved characters with underscore
     // More robust sanitization might be needed depending on target platforms
     return name.replaceAll(RegExp(r'[\\/:\*\?"<>\|]'), '_');
+  }
+
+  Future<Directory?> _transferDestinationDirectory() async {
+    if (Platform.isIOS) {
+      return getApplicationDocumentsDirectory();
+    }
+
+    try {
+      final downloadsDir = await getDownloadsDirectory();
+      if (downloadsDir != null) return downloadsDir;
+    } on UnsupportedError {
+      // Fall through to the app documents directory below.
+    }
+
+    return getApplicationDocumentsDirectory();
   }
 
   Future<String> _makeUniqueFilePath(String initialPath) async {

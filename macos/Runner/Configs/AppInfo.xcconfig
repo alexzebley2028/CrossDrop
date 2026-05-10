@@ -8,7 +8,7 @@
 PRODUCT_NAME = CrossDrop
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = de.fwcr.crossdrop
+PRODUCT_BUNDLE_IDENTIFIER = de.medformatik.crossdrop
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2024 Florian Rachmann. All rights reserved.

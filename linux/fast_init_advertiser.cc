@@ -6,7 +6,7 @@ namespace {
 
 constexpr const char* kBluezName = "org.bluez";
 constexpr const char* kAdvertisementPath =
-    "/de/fwcr/crossdrop/FastInitAdvertisement";
+    "/de/medformatik/crossdrop/FastInitAdvertisement";
 constexpr const char* kLeAdvertisementInterface =
     "org.bluez.LEAdvertisement1";
 constexpr const char* kLeAdvertisingManagerInterface =
