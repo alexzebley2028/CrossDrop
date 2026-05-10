@@ -23,6 +23,7 @@ abstract class NearbyEventsListener {
     String connectionId,
   );
   void onTransferFinished(String connectionId, bool success, Exception? error);
+  void onInboundTransferProgress(String connectionId, double progress);
   void onOutgoingTransferStarted(String deviceId, String connectionId);
   void onOutgoingTransferProgress(String connectionId, double progress);
   void onOutgoingPinAvailable(String connectionId, String pin);
@@ -508,6 +509,16 @@ class NearbyConnectionManager extends ChangeNotifier
     _inboundConnections.remove(connection.id);
     for (var l in _nearbyListeners) {
       l.onTransferFinished(connection.id, error == null, error);
+    }
+  }
+
+  @override
+  void inboundTransferProgress(
+    InboundNearbyConnection connection,
+    double progress,
+  ) {
+    for (var l in _nearbyListeners) {
+      l.onInboundTransferProgress(connection.id, progress);
     }
   }
 

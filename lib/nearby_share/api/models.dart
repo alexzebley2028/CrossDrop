@@ -103,11 +103,13 @@ class ShareFileMetadata {
   final String name;
   final int size;
   final String mimeType;
+  final String? localPath;
 
   ShareFileMetadata({
     required this.name,
     required this.size,
     required this.mimeType,
+    this.localPath,
   });
 }
 

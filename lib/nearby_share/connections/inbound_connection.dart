@@ -41,8 +41,10 @@ abstract class InboundNearbyConnectionDelegate {
     InboundNearbyConnection connection,
     Exception? error,
   );
-  // Add methods for progress updates if needed
-  // void updateTransferProgress(String connectionId, double progress);
+  void inboundTransferProgress(
+    InboundNearbyConnection connection,
+    double progress,
+  );
 }
 
 class InboundNearbyConnection extends NearbyConnection {
@@ -50,6 +52,8 @@ class InboundNearbyConnection extends NearbyConnection {
   InboundNearbyConnectionDelegate? delegate;
   Uint8List? _cipherCommitment;
   int _textPayloadID = 0;
+  int _totalBytesToReceive = 0;
+  int _totalBytesReceived = 0;
   bool _receivedClientConnectionResponse = false;
 
   // Store socket details
@@ -223,7 +227,8 @@ class InboundNearbyConnection extends NearbyConnection {
       try {
         await fileInfo.fileHandle!.writeFrom(chunk.body);
         fileInfo.bytesTransferred += chunk.body.length;
-        // TODO: Update progress via delegate if needed
+        _totalBytesReceived += chunk.body.length;
+        _publishTransferProgress();
       } catch (e) {
         throw NearbyIOException();
       }
@@ -270,6 +275,8 @@ class InboundNearbyConnection extends NearbyConnection {
         try {
           await fileInfo.fileHandle!.writeFrom(payload);
           fileInfo.bytesTransferred += payload.length;
+          _totalBytesReceived += payload.length;
+          _publishTransferProgress();
           await fileInfo.fileHandle!.close();
           fileInfo.fileHandle = null;
           transferredFiles.remove(payloadId);
@@ -633,8 +640,10 @@ class InboundNearbyConnection extends NearbyConnection {
           mimeType: file.mimeType.isNotEmpty
               ? file.mimeType
               : 'application/octet-stream',
+          localPath: destPath,
         );
         filesMeta.add(fileMeta);
+        _totalBytesToReceive += fileMeta.size;
         transferredFiles[payloadIdInt] = InternalFileInfo(
           meta: fileMeta,
           payloadID: payloadIdInt,
@@ -692,8 +701,10 @@ class InboundNearbyConnection extends NearbyConnection {
             name: p.basename(destPath),
             size: textMeta.size.toInt(),
             mimeType: 'text/plain',
+            localPath: destPath,
           );
           filesMeta.add(fileMeta);
+          _totalBytesToReceive += fileMeta.size;
           transferredFiles[payloadIdInt] = InternalFileInfo(
             meta: fileMeta,
             payloadID: payloadIdInt,
@@ -837,6 +848,14 @@ class InboundNearbyConnection extends NearbyConnection {
       }
     }
     transferredFiles.clear(); // Clear the map
+  }
+
+  void _publishTransferProgress() {
+    if (_totalBytesToReceive <= 0) return;
+    delegate?.inboundTransferProgress(
+      this,
+      (_totalBytesReceived / _totalBytesToReceive).clamp(0, 1).toDouble(),
+    );
   }
 
   Future<void> rejectTransfer({

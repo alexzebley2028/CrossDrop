@@ -5,6 +5,7 @@ import 'package:crossdrop/app/file_intents.dart';
 import 'package:crossdrop/app/file_paths.dart';
 import 'package:crossdrop/app/notification_actions.dart';
 import 'package:crossdrop/app/pending_transfer.dart';
+import 'package:crossdrop/app/reveal_file.dart';
 import 'package:crossdrop/app/transfer_metadata_extensions.dart';
 import 'package:crossdrop/app/widgets/device_name_field.dart';
 import 'package:crossdrop/app/widgets/outgoing_send_section.dart';
@@ -232,7 +233,15 @@ class _AppState extends State<App> implements NearbyEventsListener {
     var stopOutgoingDiscovery = false;
     if (mounted) {
       setState(() {
-        _pendingTransfers.remove(connectionId);
+        final inboundTransfer = _pendingTransfers[connectionId];
+        if (inboundTransfer != null) {
+          _pendingTransfers[connectionId] = inboundTransfer.copyWith(
+            status: success
+                ? PendingTransferStatus.finished
+                : PendingTransferStatus.failed,
+            error: error?.toString(),
+          );
+        }
         if (connectionId == _outgoingConnectionId ||
             connectionId == _outgoingTargetDeviceId) {
           _outgoingStatus = success ? 'Transfer finished' : 'Transfer failed';
@@ -252,6 +261,18 @@ class _AppState extends State<App> implements NearbyEventsListener {
     if (!success && error != null && error is! NearbyCancellationException) {
       unawaited(showErrorNotification(connectionId, null, error.toString()));
     }
+  }
+
+  @override
+  void onInboundTransferProgress(String connectionId, double progress) {
+    final transfer = _pendingTransfers[connectionId];
+    if (transfer == null) return;
+    setState(() {
+      _pendingTransfers[connectionId] = transfer.copyWith(
+        status: PendingTransferStatus.receiving,
+        progress: progress.clamp(0, 1).toDouble(),
+      );
+    });
   }
 
   @override
@@ -293,11 +314,57 @@ class _AppState extends State<App> implements NearbyEventsListener {
   ) async {
     if (mounted) {
       setState(() {
-        _pendingTransfers.remove(connectionId);
+        if (accept) {
+          final transfer = _pendingTransfers[connectionId];
+          if (transfer != null) {
+            _pendingTransfers[connectionId] = transfer.copyWith(
+              status: PendingTransferStatus.receiving,
+            );
+          }
+        } else {
+          _pendingTransfers.remove(connectionId);
+        }
       });
     }
     await _manager.respondToTransfer(connectionId, accept);
     await cancelNotification(connectionId);
+  }
+
+  void _dismissInboundTransfer(String connectionId) {
+    setState(() {
+      _pendingTransfers.remove(connectionId);
+    });
+  }
+
+  Future<void> _showInboundTransferInFileManager(
+    PendingTransfer transfer,
+  ) async {
+    final localPath = _firstLocalPath(transfer);
+    if (localPath == null) return;
+
+    try {
+      await revealFileInFileManager(localPath);
+    } catch (e, s) {
+      print('Failed to show received file in file manager: $e\n$s');
+    }
+  }
+
+  Future<void> _openInboundTransferFile(PendingTransfer transfer) async {
+    final localPath = _firstLocalPath(transfer);
+    if (localPath == null) return;
+
+    try {
+      await openFileWithDefaultApp(localPath);
+    } catch (e, s) {
+      print('Failed to open received file: $e\n$s');
+    }
+  }
+
+  String? _firstLocalPath(PendingTransfer transfer) {
+    for (final file in transfer.metadata.files) {
+      if (file.localPath != null) return file.localPath;
+    }
+    return null;
   }
 
   void _handleNotificationAction(String connectionId, bool accepted) {
@@ -414,6 +481,8 @@ class _AppState extends State<App> implements NearbyEventsListener {
   Widget build(BuildContext context) {
     final manager = context.watch<NearbyConnectionManager>();
     final appTheme = context.watch<AppTheme>();
+    final showReceiveStatus =
+        _outgoingFilePaths.isEmpty && _pendingTransfers.isEmpty;
 
     return MaterialApp(
       title: AppConfig.name,
@@ -437,6 +506,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
               children: [
                 ReceiveStatusHeader(
                   isBroadcasting: manager.isBroadcasting,
+                  showReceiveStatus: showReceiveStatus,
                   shapeIndex: _currentShapeIndex,
                   opacity: _opacity,
                   animationDuration: _currentAnimationDuration,
@@ -474,12 +544,30 @@ class _AppState extends State<App> implements NearbyEventsListener {
                             TransferRequestPanel(
                               transfer: entry.value.metadata,
                               device: entry.value.device,
+                              status: entry.value.status,
+                              progress: entry.value.progress,
+                              error: entry.value.error,
                               onAccept: () => unawaited(
                                 _respondToPendingTransfer(entry.key, true),
                               ),
                               onDecline: () => unawaited(
                                 _respondToPendingTransfer(entry.key, false),
                               ),
+                              onDismiss: () =>
+                                  _dismissInboundTransfer(entry.key),
+                              onOpenFile: _firstLocalPath(entry.value) == null
+                                  ? null
+                                  : () => unawaited(
+                                      _openInboundTransferFile(entry.value),
+                                    ),
+                              onShowInFileManager:
+                                  _firstLocalPath(entry.value) == null
+                                  ? null
+                                  : () => unawaited(
+                                      _showInboundTransferInFileManager(
+                                        entry.value,
+                                      ),
+                                    ),
                             ),
                         ],
                       ],
