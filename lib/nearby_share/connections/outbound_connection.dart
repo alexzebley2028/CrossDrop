@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crossdrop/device.dart';
@@ -57,6 +56,8 @@ class OutboundNearbyConnection extends NearbyConnection {
   int _totalBytesToSend = 0;
   int _totalBytesSent = 0;
   bool _cancelled = false;
+  bool _awaitingRemoteCompletion = false;
+  bool _completionReported = false;
   int _textPayloadID = 0; // Use int
 
   OutboundNearbyConnection(
@@ -68,7 +69,7 @@ class OutboundNearbyConnection extends NearbyConnection {
        _endpointId = endpointId {
     if (urlsToSend.length == 1 && !File(urlsToSend[0]).existsSync()) {
       // Heuristic for non-file URL
-      _textPayloadID = Random().nextInt(0x7FFFFFFF);
+      _textPayloadID = generatePositivePayloadId();
     }
   }
 
@@ -145,8 +146,10 @@ class OutboundNearbyConnection extends NearbyConnection {
     if (_currentState != OutboundState.disconnected) {
       _currentState = OutboundState.disconnected;
       _cleanupFileHandles();
-      // Report failure unless cancelled gracefully *after* finishing normally
-      if (!_cancelled || lastError != null) {
+      if (_awaitingRemoteCompletion && lastError == null) {
+        _reportTransferFinished();
+      } else if (!_cancelled || lastError != null) {
+        // Report failure unless cancelled gracefully *after* finishing normally
         Future.microtask(
           () => delegate?.outboundConnectionFailed(
             this,
@@ -155,6 +158,12 @@ class OutboundNearbyConnection extends NearbyConnection {
         );
       }
     }
+  }
+
+  void _reportTransferFinished() {
+    if (_completionReported) return;
+    _completionReported = true;
+    Future.microtask(() => delegate?.outboundTransferFinished(this));
   }
 
   @override
@@ -234,21 +243,21 @@ class OutboundNearbyConnection extends NearbyConnection {
 
     switch (_currentState) {
       case OutboundState.sentPairedKeyEncryption:
-        // Expecting PAIRED_KEY_RESULT from server
+        // Expecting PAIRED_KEY_ENCRYPTION from receiver
+        if (!frame.hasV1() || !frame.v1.hasPairedKeyEncryption()) {
+          throw NearbyProtocolException(
+            "Expected PairedKeyEncryption, got ${frame.v1.type}",
+          );
+        }
+        await _processPairedKeyEncryption(frame);
+        break;
+      case OutboundState.sentPairedKeyResult:
         if (!frame.hasV1() || !frame.v1.hasPairedKeyResult()) {
           throw NearbyProtocolException(
             "Expected PairedKeyResult, got ${frame.v1.type}",
           );
         }
         await _processPairedKeyResult(frame);
-        break;
-      case OutboundState.sentPairedKeyResult:
-        // We sent our PairedKeyResult, server might send one too, or maybe nothing?
-        // Swift code doesn't expect anything here before Introduction. Let's proceed.
-        print(
-          "Outbound $id: Received frame after sending PairedKeyResult, assuming ready for Introduction.",
-        );
-        await _prepareAndSendIntroduction();
         break;
       case OutboundState.sentIntroduction:
         // Expecting RESPONSE (ACCEPT/REJECT) from server
@@ -297,7 +306,7 @@ class OutboundNearbyConnection extends NearbyConnection {
       version: offline.OfflineFrame_Version.V1,
       v1: v1Frame,
     );
-    sendFrame(offlineFrame.writeToBuffer());
+    await sendFrame(offlineFrame.writeToBuffer());
     print("Outbound $id: Sent ConnectionRequest");
   }
 
@@ -339,7 +348,7 @@ class OutboundNearbyConnection extends NearbyConnection {
 
     ukeyClientInitMsgData = clientInitMsg
         .writeToBuffer(); // Store raw bytes for HKDF
-    sendFrame(ukeyClientInitMsgData!);
+    await sendFrame(ukeyClientInitMsgData!);
     _currentState = OutboundState.sentUkeyClientInit;
     print("Outbound $id: Sent UKEY2 ClientInit");
   }
@@ -404,9 +413,9 @@ class OutboundNearbyConnection extends NearbyConnection {
       if (_ukeyClientFinishMsgData == null) {
         throw StateError("ClientFinish message data is null");
       }
-      sendFrame(_ukeyClientFinishMsgData!);
+      await sendFrame(_ukeyClientFinishMsgData!);
       print("Outbound $id: Sent UKEY2 ClientFinish");
-      _sendPlaintextConnectionResponse();
+      await _sendPlaintextConnectionResponse();
       _currentState = OutboundState.sentUkeyClientFinish;
       encryptionDone = true;
       print("Outbound $id: Sent plaintext ConnectionResponse");
@@ -420,7 +429,7 @@ class OutboundNearbyConnection extends NearbyConnection {
     }
   }
 
-  void _sendPlaintextConnectionResponse() {
+  Future<void> _sendPlaintextConnectionResponse() async {
     final connResp = offline.ConnectionResponseFrame(
       response: offline.ConnectionResponseFrame_ResponseStatus.ACCEPT,
       status: 0,
@@ -434,7 +443,7 @@ class OutboundNearbyConnection extends NearbyConnection {
       version: offline.OfflineFrame_Version.V1,
       v1: v1Frame,
     );
-    sendFrame(offlineFrame.writeToBuffer());
+    await sendFrame(offlineFrame.writeToBuffer());
   }
 
   offline.OsInfo_OsType _platformOsType() {
@@ -489,11 +498,8 @@ class OutboundNearbyConnection extends NearbyConnection {
     print("Outbound $id: Sent PairedKeyEncryption");
   }
 
-  // Process the server's PairedKeyResult frame
-  Future<void> _processPairedKeyResult(wire.Frame frame) async {
-    // We don't care about the result (UNABLE usually), just proceed
-    print("Outbound $id: Processing PairedKeyResult from server");
-    // Send our own PairedKeyResult (UNABLE)
+  Future<void> _processPairedKeyEncryption(wire.Frame frame) async {
+    print("Outbound $id: Processing PairedKeyEncryption from receiver");
     final pairedResultFrame = wire.PairedKeyResultFrame(
       status: wire.PairedKeyResultFrame_Status.UNABLE,
     );
@@ -508,8 +514,12 @@ class OutboundNearbyConnection extends NearbyConnection {
     await sendTransferSetupFrame(wireFrame);
     _currentState = OutboundState.sentPairedKeyResult;
     print("Outbound $id: Sent our PairedKeyResult (UNABLE)");
+  }
 
-    // Now prepare and send the Introduction frame
+  // Process the server's PairedKeyResult frame
+  Future<void> _processPairedKeyResult(wire.Frame frame) async {
+    // We don't care about the result (UNABLE usually), just proceed
+    print("Outbound $id: Processing PairedKeyResult from receiver");
     await _prepareAndSendIntroduction();
   }
 
@@ -528,7 +538,6 @@ class OutboundNearbyConnection extends NearbyConnection {
         textTitle: uri?.host ?? "URL",
         size: Int64(urlString.length),
         payloadId: Int64(_textPayloadID),
-        id: Int64(Random().nextInt(0x7FFFFFFF)), // Add unique ID
       );
       introduction.textMetadata.add(textMeta);
       _totalBytesToSend = urlString.length; // Only the text bytes
@@ -541,17 +550,21 @@ class OutboundNearbyConnection extends NearbyConnection {
             print("Warning: File not found: $url");
             continue;
           }
+          final fileStat = await file.stat();
           final fileSize = await file.length();
           final fileName = p.basename(url);
           final mimeType = lookupMimeType(url) ?? 'application/octet-stream';
+          final fileType = _guessFileType(mimeType, url);
 
           final fileMeta = wire.FileMetadata(
             name: _sanitizeFileName(fileName),
             size: Int64(fileSize),
             mimeType: mimeType,
-            type: _guessFileType(mimeType, url),
-            payloadId: Int64(Random().nextInt(0x7FFFFFFF)),
-            id: Int64(Random().nextInt(0x7FFFFFFF)), // Add unique ID
+            type: fileType,
+            payloadId: Int64(generatePositivePayloadId()),
+          );
+          print(
+            "Outbound $id: Queued file ${fileMeta.name} ($mimeType, ${fileType.name}) payload ${fileMeta.payloadId} size $fileSize",
           );
 
           introduction.fileMetadata.add(fileMeta);
@@ -560,6 +573,7 @@ class OutboundNearbyConnection extends NearbyConnection {
               sourcePath: url,
               payloadID: fileMeta.payloadId.toInt(),
               totalBytes: fileSize,
+              lastModifiedMillis: fileStat.modified.millisecondsSinceEpoch,
               // Handle will be opened later
             ),
           );
@@ -625,9 +639,11 @@ class OutboundNearbyConnection extends NearbyConnection {
       payloadId: _textPayloadID,
     );
     print("Outbound $id: URL payload sent.");
-    _currentState = OutboundState.disconnected; // Mark as finished
-    Future.microtask(() => delegate?.outboundTransferFinished(this));
-    await sendDisconnectionAndDisconnect();
+    _awaitingRemoteCompletion = true;
+    await sendDisconnectionAndDisconnect(
+      waitForRemoteClose: true,
+      remoteCloseTimeout: const Duration(seconds: 10),
+    );
   }
 
   Future<void> _sendNextFileChunk() async {
@@ -641,10 +657,11 @@ class OutboundNearbyConnection extends NearbyConnection {
 
       if (_transferQueue.isEmpty) {
         print("Outbound $id: All files transferred.");
-        _currentState =
-            OutboundState.disconnected; // Mark as finished before disconnect
-        Future.microtask(() => delegate?.outboundTransferFinished(this));
-        await sendDisconnectionAndDisconnect();
+        _awaitingRemoteCompletion = true;
+        await sendDisconnectionAndDisconnect(
+          waitForRemoteClose: true,
+          remoteCloseTimeout: const Duration(seconds: 10),
+        );
         return;
       }
 
@@ -693,11 +710,16 @@ class OutboundNearbyConnection extends NearbyConnection {
     }
 
     // Prepare and send payload chunk frame
+    final payloadFileName = _sanitizeFileName(
+      p.basename(_currentTransfer!.sourcePath),
+    );
     final header = offline.PayloadTransferFrame_PayloadHeader(
       id: Int64(_currentTransfer!.payloadID),
       type: offline.PayloadTransferFrame_PayloadHeader_PayloadType.FILE,
       totalSize: Int64(_currentTransfer!.totalBytes),
       isSensitive: false,
+      fileName: payloadFileName,
+      lastModifiedTimestampMillis: Int64(_currentTransfer!.lastModifiedMillis),
     );
     final chunk = offline.PayloadTransferFrame_PayloadChunk(
       offset: Int64(_currentTransfer!.currentOffset),
@@ -745,9 +767,11 @@ class OutboundNearbyConnection extends NearbyConnection {
       print(
         "Outbound $id: Sending EOF for payload ${_currentTransfer!.payloadID}",
       );
+      final isFinalFileOfTransfer = _transferQueue.isEmpty;
       final eofChunk = offline.PayloadTransferFrame_PayloadChunk(
         offset: Int64(_currentTransfer!.currentOffset),
         flags: 1, // LAST_CHUNK
+        body: Uint8List(0),
       );
       final eofTransfer = offline.PayloadTransferFrame(
         packetType: offline.PayloadTransferFrame_PacketType.DATA,
@@ -763,6 +787,9 @@ class OutboundNearbyConnection extends NearbyConnection {
         v1: eofV1Frame,
       );
       await encryptAndSendOfflineFrame(eofOfflineFrame);
+      if (isFinalFileOfTransfer) {
+        _awaitingRemoteCompletion = true;
+      }
     }
 
     // Schedule next chunk send (using microtask to avoid deep recursion)
@@ -783,12 +810,21 @@ class OutboundNearbyConnection extends NearbyConnection {
   }
 
   wire.FileMetadata_Type _guessFileType(String mimeType, String filePath) {
-    if (mimeType.startsWith('image/')) return wire.FileMetadata_Type.IMAGE;
-    if (mimeType.startsWith('video/')) return wire.FileMetadata_Type.VIDEO;
-    if (mimeType.startsWith('audio/')) return wire.FileMetadata_Type.AUDIO;
-    if (mimeType == 'application/vnd.android.package-archive' ||
-        p.extension(filePath).toLowerCase() == '.apk') {
-      return wire.FileMetadata_Type.APP;
+    final normalizedMimeType = mimeType.toLowerCase();
+    final extension = p.extension(filePath).toLowerCase();
+
+    if (normalizedMimeType.startsWith('image/')) {
+      return wire.FileMetadata_Type.IMAGE;
+    }
+    if (normalizedMimeType.startsWith('video/')) {
+      return wire.FileMetadata_Type.VIDEO;
+    }
+    if (normalizedMimeType.startsWith('audio/')) {
+      return wire.FileMetadata_Type.AUDIO;
+    }
+    if (normalizedMimeType == 'application/vnd.android.package-archive' ||
+        extension == '.apk') {
+      return wire.FileMetadata_Type.ANDROID_APP;
     }
     return wire.FileMetadata_Type.UNKNOWN;
   }

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crossdrop/nearby_share/api/models.dart';
@@ -36,6 +35,7 @@ abstract class NearbyConnection {
   StreamSubscription<Uint8List>? _socketSubscription;
   final Completer<void> _closedCompleter = Completer<void>();
   Future<void> _frameProcessing = Future<void>.value();
+  Future<void> _frameWriting = Future<void>.value();
 
   // UKEY2 state
   pc.ECPublicKey? ukeyPublicKey; // PointyCastle keys
@@ -186,36 +186,29 @@ abstract class NearbyConnection {
   }
 
   // Sends a raw frame with length prefix
-  void sendFrame(List<int> frame, {void Function()? completion}) {
+  Future<void> sendFrame(List<int> frame, {void Function()? completion}) {
     if (connectionClosed) {
       print('Attempted to send on closed connection $id');
-      return;
+      return Future<void>.value();
     }
-    try {
-      final length = frame.length;
-      final lengthBytes = ByteData(4);
-      lengthBytes.setUint32(0, length, Endian.big);
+    final length = frame.length;
+    final packet = Uint8List(4 + length);
+    ByteData.view(packet.buffer).setUint32(0, length, Endian.big);
+    packet.setRange(4, packet.length, frame);
 
-      _socket.add(lengthBytes.buffer.asUint8List());
-      _socket.add(frame);
-      // print('Connection $id sent frame of length $length');
-
-      // Note: Dart sockets don't have direct per-write completion callbacks like NWConnection.
-      // Flushing might help ensure it's sent, but doesn't guarantee processing by the peer.
-      // Use Future chaining or track state if precise send completion is critical.
-      _socket
-          .flush()
-          .then((_) {
-            completion?.call();
-          })
-          .catchError((e, s) {
-            print('Connection $id: Error flushing socket after send: $e\n$s');
-            _onError(e, s);
-          });
-    } catch (e, s) {
-      print('Connection $id: Error sending frame: $e\n$s');
-      _onError(e, s);
-    }
+    final write = _frameWriting.then((_) async {
+      if (connectionClosed) return;
+      try {
+        _socket.add(packet);
+        await _socket.flush();
+        completion?.call();
+      } catch (e, s) {
+        print('Connection $id: Error sending frame: $e\n$s');
+        _onError(e, s);
+      }
+    });
+    _frameWriting = write.catchError((_) {});
+    return write;
   }
 
   // Encrypts and sends an OfflineFrame using SecureMessage
@@ -265,15 +258,15 @@ abstract class NearbyConnection {
       signature: mac.bytes,
     );
 
-    sendFrame(secureMessage.writeToBuffer(), completion: completion);
+    await sendFrame(secureMessage.writeToBuffer(), completion: completion);
   }
 
   // Sends a setup frame (like Introduction, Response) as a BYTES payload
   Future<void> sendTransferSetupFrame(wire.Frame frame) async {
     await sendBytesPayload(
       data: frame.writeToBuffer(),
-      payloadId: Random().nextInt(0x7FFFFFFF),
-    ); // Use positive random int64
+      payloadId: generateRandomInt64(),
+    );
   }
 
   // Sends data as a BYTES payload (potentially chunked, but simpler for setup frames)
@@ -398,15 +391,64 @@ abstract class NearbyConnection {
         );
       }
       final payloadTransfer = offlineFrame.v1.payloadTransfer;
-      final header = payloadTransfer.payloadHeader;
-      final chunk = payloadTransfer.payloadChunk;
+      final packetType = payloadTransfer.hasPacketType()
+          ? payloadTransfer.packetType
+          : offline.PayloadTransferFrame_PacketType.DATA;
 
-      if (!header.hasType() || !header.hasId()) {
+      if (packetType == offline.PayloadTransferFrame_PacketType.PAYLOAD_ACK) {
+        final payloadId =
+            payloadTransfer.hasPayloadHeader() &&
+                payloadTransfer.payloadHeader.hasId()
+            ? payloadTransfer.payloadHeader.id.toString()
+            : 'unknown';
+        print("Received payload ACK for payload $payloadId");
+        return;
+      }
+
+      if (packetType == offline.PayloadTransferFrame_PacketType.CONTROL) {
+        final payloadId =
+            payloadTransfer.hasPayloadHeader() &&
+                payloadTransfer.payloadHeader.hasId()
+            ? payloadTransfer.payloadHeader.id.toString()
+            : 'unknown';
+        final event = payloadTransfer.hasControlMessage()
+            ? payloadTransfer.controlMessage.event
+            : offline
+                  .PayloadTransferFrame_ControlMessage_EventType
+                  .UNKNOWN_EVENT_TYPE;
+        print("Received payload control frame for payload $payloadId: $event");
+        if (event ==
+                offline
+                    .PayloadTransferFrame_ControlMessage_EventType
+                    .PAYLOAD_ERROR ||
+            event ==
+                offline
+                    .PayloadTransferFrame_ControlMessage_EventType
+                    .PAYLOAD_CANCELED) {
+          throw NearbyProtocolException(
+            "Receiver reported payload control event $event for payload $payloadId",
+          );
+        }
+        return;
+      }
+
+      if (packetType != offline.PayloadTransferFrame_PacketType.DATA) {
+        throw NearbyProtocolException(
+          "Unexpected payload transfer packet type $packetType",
+        );
+      }
+
+      final header = payloadTransfer.hasPayloadHeader()
+          ? payloadTransfer.payloadHeader
+          : null;
+      final chunk = payloadTransfer.hasPayloadChunk()
+          ? payloadTransfer.payloadChunk
+          : null;
+
+      if (header == null || !header.hasType() || !header.hasId()) {
         throw NearbyRequiredFieldMissingException("payloadHeader.type|id");
       }
-      if (!payloadTransfer.hasPayloadChunk() ||
-          !chunk.hasOffset() ||
-          !chunk.hasFlags()) {
+      if (chunk == null || !chunk.hasOffset() || !chunk.hasFlags()) {
         throw NearbyRequiredFieldMissingException(
           "payloadTransfer.payloadChunk|offset|flags",
         );
@@ -669,7 +711,11 @@ abstract class NearbyConnection {
   }
 
   // Sends a DISCONNECTION frame and then disconnects
-  Future<void> sendDisconnectionAndDisconnect() async {
+  Future<void> sendDisconnectionAndDisconnect({
+    bool waitForRemoteClose = false,
+    Duration closeDelay = const Duration(milliseconds: 50),
+    Duration remoteCloseTimeout = const Duration(seconds: 2),
+  }) async {
     if (connectionClosed) return;
 
     final disconnectionFrame =
@@ -683,23 +729,37 @@ abstract class NearbyConnection {
       v1: v1Frame,
     );
 
+    var sent = false;
     try {
       if (encryptionDone) {
         await encryptAndSendOfflineFrame(offlineFrame);
         print('Connection $id: Sent encrypted DISCONNECTION');
       } else {
-        sendFrame(offlineFrame.writeToBuffer());
+        await sendFrame(offlineFrame.writeToBuffer());
         print('Connection $id: Sent unencrypted DISCONNECTION');
       }
-      // Wait briefly for the frame to potentially be sent before closing
-      // This is heuristic, ideally wait for socket flush if possible/needed
-      await Future.delayed(const Duration(milliseconds: 50));
+      sent = true;
     } catch (e, s) {
       print('Connection $id: Failed to send disconnection frame: $e\n$s');
-      // Proceed with disconnection anyway
-    } finally {
-      await disconnect();
     }
+
+    if (sent && waitForRemoteClose) {
+      print('Connection $id: Waiting for remote close after DISCONNECTION');
+      unawaited(
+        Future<void>.delayed(remoteCloseTimeout, () async {
+          if (connectionClosed) return;
+          print(
+            'Connection $id: Remote close timed out after DISCONNECTION; closing locally.',
+          );
+          await disconnect();
+        }),
+      );
+      return;
+    }
+
+    // Wait briefly for the frame to be sent before closing.
+    await Future.delayed(closeDelay);
+    await disconnect();
   }
 
   // Sends a UKEY2 Alert message and disconnects
@@ -712,16 +772,12 @@ abstract class NearbyConnection {
       messageType: ukey.Ukey2Message_Type.ALERT,
       messageData: alert.writeToBuffer(),
     );
-    try {
-      sendFrame(msg.writeToBuffer());
-      // Give it a moment to send before forceful closure
-      Future.delayed(
-        const Duration(milliseconds: 50),
-      ).then((_) => disconnect());
-    } catch (e, s) {
-      print('Connection $id: Failed to send UKEY2 alert: $e\n$s');
-      disconnect(); // Disconnect anyway
-    }
+    unawaited(
+      sendFrame(msg.writeToBuffer()).whenComplete(() async {
+        await Future.delayed(const Duration(milliseconds: 50));
+        await disconnect();
+      }),
+    );
   }
 
   // Sends a KeepAlive frame
@@ -739,10 +795,10 @@ abstract class NearbyConnection {
 
     try {
       if (encryptionDone) {
-        encryptAndSendOfflineFrame(offlineFrame);
+        unawaited(encryptAndSendOfflineFrame(offlineFrame));
         print('Connection $id: Sent encrypted KEEP_ALIVE (ack: $ack)');
       } else {
-        sendFrame(offlineFrame.writeToBuffer());
+        unawaited(sendFrame(offlineFrame.writeToBuffer()));
         print('Connection $id: Sent unencrypted KEEP_ALIVE (ack: $ack)');
       }
     } catch (e, s) {

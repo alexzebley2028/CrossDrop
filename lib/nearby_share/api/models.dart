@@ -192,6 +192,7 @@ class OutgoingFileTransfer {
   final int payloadID;
   RandomAccessFile? handle;
   final int totalBytes;
+  final int lastModifiedMillis;
   int currentOffset = 0;
 
   OutgoingFileTransfer({
@@ -199,6 +200,7 @@ class OutgoingFileTransfer {
     required this.payloadID,
     this.handle,
     required this.totalBytes,
+    required this.lastModifiedMillis,
   });
 }
 

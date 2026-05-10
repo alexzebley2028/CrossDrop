@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=CrossDrop
+Comment=Send files with Quick Share
+Exec=CrossDrop %U
+Icon=CrossDrop
+Terminal=false
+Categories=Utility;Network;FileTransfer;
+MimeType=application/octet-stream;application/pdf;application/zip;text/plain;image/jpeg;image/png;image/gif;image/webp;video/mp4;audio/mpeg;

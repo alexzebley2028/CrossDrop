@@ -11,6 +11,7 @@ dependencies:
   bonsoir: ^6.1.0
   cryptography: ^2.9.0
   device_info_plus: ^13.1.0
+  file_selector: ^1.1.0
   fixnum: ^1.1.1
   flutter:
     sdk: flutter

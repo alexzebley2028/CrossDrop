@@ -88,7 +88,7 @@ class InboundNearbyConnection extends NearbyConnection {
         case InboundState.receivedConnectionRequest:
           final msg = ukey.Ukey2Message.fromBuffer(frameData);
           ukeyClientInitMsgData = frameData; // Store raw bytes for HKDF later
-          _processUkey2ClientInit(msg);
+          await _processUkey2ClientInit(msg);
           break;
         case InboundState.sentUkeyServerInit:
           final msg = ukey.Ukey2Message.fromBuffer(frameData);
@@ -333,7 +333,7 @@ class InboundNearbyConnection extends NearbyConnection {
     }
   }
 
-  void _processUkey2ClientInit(ukey.Ukey2Message msg) {
+  Future<void> _processUkey2ClientInit(ukey.Ukey2Message msg) async {
     if (msg.messageType != ukey.Ukey2Message_Type.CLIENT_INIT) {
       sendUkey2Alert(ukey.Ukey2Alert_AlertType.BAD_MESSAGE_TYPE);
       throw NearbyUkey2Exception();
@@ -405,7 +405,7 @@ class InboundNearbyConnection extends NearbyConnection {
 
     final serverInitData = serverInitMsg.writeToBuffer();
     ukeyServerInitMsgData = serverInitData; // Store raw bytes for HKDF
-    sendFrame(serverInitData);
+    await sendFrame(serverInitData);
     _currentState = InboundState.sentUkeyServerInit;
   }
 
@@ -528,7 +528,7 @@ class InboundNearbyConnection extends NearbyConnection {
       version: offline.OfflineFrame_Version.V1,
       v1: v1Frame,
     );
-    sendFrame(offlineFrame.writeToBuffer());
+    await sendFrame(offlineFrame.writeToBuffer());
     print("Inbound $id: Sent plaintext ConnectionResponse");
 
     encryptionDone = true;

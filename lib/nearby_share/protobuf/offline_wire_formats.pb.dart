@@ -103,6 +103,11 @@ class V1Frame extends $pb.GeneratedMessage {
     KeepAliveFrame? keepAlive,
     DisconnectionFrame? disconnection,
     PairedKeyEncryptionFrame? pairedKeyEncryption,
+    AuthenticationMessageFrame? authenticationMessage,
+    AuthenticationResultFrame? authenticationResult,
+    AutoResumeFrame? autoResume,
+    AutoReconnectFrame? autoReconnect,
+    BandwidthUpgradeRetryFrame? bandwidthUpgradeRetry,
   }) {
     final result = create();
     if (type != null) result.type = type;
@@ -116,6 +121,14 @@ class V1Frame extends $pb.GeneratedMessage {
     if (disconnection != null) result.disconnection = disconnection;
     if (pairedKeyEncryption != null)
       result.pairedKeyEncryption = pairedKeyEncryption;
+    if (authenticationMessage != null)
+      result.authenticationMessage = authenticationMessage;
+    if (authenticationResult != null)
+      result.authenticationResult = authenticationResult;
+    if (autoResume != null) result.autoResume = autoResume;
+    if (autoReconnect != null) result.autoReconnect = autoReconnect;
+    if (bandwidthUpgradeRetry != null)
+      result.bandwidthUpgradeRetry = bandwidthUpgradeRetry;
     return result;
   }
 
@@ -152,6 +165,19 @@ class V1Frame extends $pb.GeneratedMessage {
     ..aOM<PairedKeyEncryptionFrame>(
         8, _omitFieldNames ? '' : 'pairedKeyEncryption',
         subBuilder: PairedKeyEncryptionFrame.create)
+    ..aOM<AuthenticationMessageFrame>(
+        9, _omitFieldNames ? '' : 'authenticationMessage',
+        subBuilder: AuthenticationMessageFrame.create)
+    ..aOM<AuthenticationResultFrame>(
+        10, _omitFieldNames ? '' : 'authenticationResult',
+        subBuilder: AuthenticationResultFrame.create)
+    ..aOM<AutoResumeFrame>(11, _omitFieldNames ? '' : 'autoResume',
+        subBuilder: AutoResumeFrame.create)
+    ..aOM<AutoReconnectFrame>(12, _omitFieldNames ? '' : 'autoReconnect',
+        subBuilder: AutoReconnectFrame.create)
+    ..aOM<BandwidthUpgradeRetryFrame>(
+        13, _omitFieldNames ? '' : 'bandwidthUpgradeRetry',
+        subBuilder: BandwidthUpgradeRetryFrame.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -261,7 +287,67 @@ class V1Frame extends $pb.GeneratedMessage {
   void clearPairedKeyEncryption() => $_clearField(8);
   @$pb.TagNumber(8)
   PairedKeyEncryptionFrame ensurePairedKeyEncryption() => $_ensure(7);
+
+  @$pb.TagNumber(9)
+  AuthenticationMessageFrame get authenticationMessage => $_getN(8);
+  @$pb.TagNumber(9)
+  set authenticationMessage(AuthenticationMessageFrame value) =>
+      $_setField(9, value);
+  @$pb.TagNumber(9)
+  $core.bool hasAuthenticationMessage() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearAuthenticationMessage() => $_clearField(9);
+  @$pb.TagNumber(9)
+  AuthenticationMessageFrame ensureAuthenticationMessage() => $_ensure(8);
+
+  @$pb.TagNumber(10)
+  AuthenticationResultFrame get authenticationResult => $_getN(9);
+  @$pb.TagNumber(10)
+  set authenticationResult(AuthenticationResultFrame value) =>
+      $_setField(10, value);
+  @$pb.TagNumber(10)
+  $core.bool hasAuthenticationResult() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearAuthenticationResult() => $_clearField(10);
+  @$pb.TagNumber(10)
+  AuthenticationResultFrame ensureAuthenticationResult() => $_ensure(9);
+
+  @$pb.TagNumber(11)
+  AutoResumeFrame get autoResume => $_getN(10);
+  @$pb.TagNumber(11)
+  set autoResume(AutoResumeFrame value) => $_setField(11, value);
+  @$pb.TagNumber(11)
+  $core.bool hasAutoResume() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearAutoResume() => $_clearField(11);
+  @$pb.TagNumber(11)
+  AutoResumeFrame ensureAutoResume() => $_ensure(10);
+
+  @$pb.TagNumber(12)
+  AutoReconnectFrame get autoReconnect => $_getN(11);
+  @$pb.TagNumber(12)
+  set autoReconnect(AutoReconnectFrame value) => $_setField(12, value);
+  @$pb.TagNumber(12)
+  $core.bool hasAutoReconnect() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearAutoReconnect() => $_clearField(12);
+  @$pb.TagNumber(12)
+  AutoReconnectFrame ensureAutoReconnect() => $_ensure(11);
+
+  @$pb.TagNumber(13)
+  BandwidthUpgradeRetryFrame get bandwidthUpgradeRetry => $_getN(12);
+  @$pb.TagNumber(13)
+  set bandwidthUpgradeRetry(BandwidthUpgradeRetryFrame value) =>
+      $_setField(13, value);
+  @$pb.TagNumber(13)
+  $core.bool hasBandwidthUpgradeRetry() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearBandwidthUpgradeRetry() => $_clearField(13);
+  @$pb.TagNumber(13)
+  BandwidthUpgradeRetryFrame ensureBandwidthUpgradeRetry() => $_ensure(12);
 }
+
+enum ConnectionRequestFrame_Device { connectionsDevice, presenceDevice, notSet }
 
 class ConnectionRequestFrame extends $pb.GeneratedMessage {
   factory ConnectionRequestFrame({
@@ -274,8 +360,13 @@ class ConnectionRequestFrame extends $pb.GeneratedMessage {
     MediumMetadata? mediumMetadata,
     $core.int? keepAliveIntervalMillis,
     $core.int? keepAliveTimeoutMillis,
-    $core.int? deviceType,
+    @$core.Deprecated('This field is deprecated.') $core.int? deviceType,
+    @$core.Deprecated('This field is deprecated.')
     $core.List<$core.int>? deviceInfo,
+    ConnectionsDevice? connectionsDevice,
+    PresenceDevice? presenceDevice,
+    ConnectionRequestFrame_ConnectionMode? connectionMode,
+    LocationHint? locationHint,
   }) {
     final result = create();
     if (endpointId != null) result.endpointId = endpointId;
@@ -291,6 +382,10 @@ class ConnectionRequestFrame extends $pb.GeneratedMessage {
       result.keepAliveTimeoutMillis = keepAliveTimeoutMillis;
     if (deviceType != null) result.deviceType = deviceType;
     if (deviceInfo != null) result.deviceInfo = deviceInfo;
+    if (connectionsDevice != null) result.connectionsDevice = connectionsDevice;
+    if (presenceDevice != null) result.presenceDevice = presenceDevice;
+    if (connectionMode != null) result.connectionMode = connectionMode;
+    if (locationHint != null) result.locationHint = locationHint;
     return result;
   }
 
@@ -303,11 +398,18 @@ class ConnectionRequestFrame extends $pb.GeneratedMessage {
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
+  static const $core.Map<$core.int, ConnectionRequestFrame_Device>
+      _ConnectionRequestFrame_DeviceByTag = {
+    12: ConnectionRequestFrame_Device.connectionsDevice,
+    13: ConnectionRequestFrame_Device.presenceDevice,
+    0: ConnectionRequestFrame_Device.notSet
+  };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'ConnectionRequestFrame',
       package: const $pb.PackageName(
           _omitMessageNames ? '' : 'location.nearby.connections'),
       createEmptyInstance: create)
+    ..oo(0, [12, 13])
     ..aOS(1, _omitFieldNames ? '' : 'endpointId')
     ..aOS(2, _omitFieldNames ? '' : 'endpointName')
     ..a<$core.List<$core.int>>(
@@ -324,6 +426,15 @@ class ConnectionRequestFrame extends $pb.GeneratedMessage {
     ..aI(10, _omitFieldNames ? '' : 'deviceType')
     ..a<$core.List<$core.int>>(
         11, _omitFieldNames ? '' : 'deviceInfo', $pb.PbFieldType.OY)
+    ..aOM<ConnectionsDevice>(12, _omitFieldNames ? '' : 'connectionsDevice',
+        subBuilder: ConnectionsDevice.create)
+    ..aOM<PresenceDevice>(13, _omitFieldNames ? '' : 'presenceDevice',
+        subBuilder: PresenceDevice.create)
+    ..aE<ConnectionRequestFrame_ConnectionMode>(
+        14, _omitFieldNames ? '' : 'connectionMode',
+        enumValues: ConnectionRequestFrame_ConnectionMode.values)
+    ..aOM<LocationHint>(15, _omitFieldNames ? '' : 'locationHint',
+        subBuilder: LocationHint.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -345,6 +456,14 @@ class ConnectionRequestFrame extends $pb.GeneratedMessage {
   static ConnectionRequestFrame getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ConnectionRequestFrame>(create);
   static ConnectionRequestFrame? _defaultInstance;
+
+  @$pb.TagNumber(12)
+  @$pb.TagNumber(13)
+  ConnectionRequestFrame_Device whichDevice() =>
+      _ConnectionRequestFrame_DeviceByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(12)
+  @$pb.TagNumber(13)
+  void clearDevice() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
   $core.String get endpointId => $_getSZ(0);
@@ -430,24 +549,75 @@ class ConnectionRequestFrame extends $pb.GeneratedMessage {
   void clearKeepAliveTimeoutMillis() => $_clearField(9);
 
   /// The type of {@link Device} object.
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(10)
   $core.int get deviceType => $_getIZ(9);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(10)
   set deviceType($core.int value) => $_setSignedInt32(9, value);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(10)
   $core.bool hasDeviceType() => $_has(9);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(10)
   void clearDeviceType() => $_clearField(10);
 
   /// The bytes of serialized {@link Device} object.
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(11)
   $core.List<$core.int> get deviceInfo => $_getN(10);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(11)
   set deviceInfo($core.List<$core.int> value) => $_setBytes(10, value);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(11)
   $core.bool hasDeviceInfo() => $_has(10);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(11)
   void clearDeviceInfo() => $_clearField(11);
+
+  @$pb.TagNumber(12)
+  ConnectionsDevice get connectionsDevice => $_getN(11);
+  @$pb.TagNumber(12)
+  set connectionsDevice(ConnectionsDevice value) => $_setField(12, value);
+  @$pb.TagNumber(12)
+  $core.bool hasConnectionsDevice() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearConnectionsDevice() => $_clearField(12);
+  @$pb.TagNumber(12)
+  ConnectionsDevice ensureConnectionsDevice() => $_ensure(11);
+
+  @$pb.TagNumber(13)
+  PresenceDevice get presenceDevice => $_getN(12);
+  @$pb.TagNumber(13)
+  set presenceDevice(PresenceDevice value) => $_setField(13, value);
+  @$pb.TagNumber(13)
+  $core.bool hasPresenceDevice() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearPresenceDevice() => $_clearField(13);
+  @$pb.TagNumber(13)
+  PresenceDevice ensurePresenceDevice() => $_ensure(12);
+
+  @$pb.TagNumber(14)
+  ConnectionRequestFrame_ConnectionMode get connectionMode => $_getN(13);
+  @$pb.TagNumber(14)
+  set connectionMode(ConnectionRequestFrame_ConnectionMode value) =>
+      $_setField(14, value);
+  @$pb.TagNumber(14)
+  $core.bool hasConnectionMode() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearConnectionMode() => $_clearField(14);
+
+  @$pb.TagNumber(15)
+  LocationHint get locationHint => $_getN(14);
+  @$pb.TagNumber(15)
+  set locationHint(LocationHint value) => $_setField(15, value);
+  @$pb.TagNumber(15)
+  $core.bool hasLocationHint() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearLocationHint() => $_clearField(15);
+  @$pb.TagNumber(15)
+  LocationHint ensureLocationHint() => $_ensure(14);
 }
 
 class ConnectionResponseFrame extends $pb.GeneratedMessage {
@@ -457,7 +627,11 @@ class ConnectionResponseFrame extends $pb.GeneratedMessage {
     ConnectionResponseFrame_ResponseStatus? response,
     OsInfo? osInfo,
     $core.int? multiplexSocketBitmask,
+    @$core.Deprecated('This field is deprecated.')
     $core.int? nearbyConnectionsVersion,
+    $core.int? safeToDisconnectVersion,
+    LocationHint? locationHint,
+    $core.int? keepAliveTimeoutMillis,
   }) {
     final result = create();
     if (status != null) result.status = status;
@@ -468,6 +642,11 @@ class ConnectionResponseFrame extends $pb.GeneratedMessage {
       result.multiplexSocketBitmask = multiplexSocketBitmask;
     if (nearbyConnectionsVersion != null)
       result.nearbyConnectionsVersion = nearbyConnectionsVersion;
+    if (safeToDisconnectVersion != null)
+      result.safeToDisconnectVersion = safeToDisconnectVersion;
+    if (locationHint != null) result.locationHint = locationHint;
+    if (keepAliveTimeoutMillis != null)
+      result.keepAliveTimeoutMillis = keepAliveTimeoutMillis;
     return result;
   }
 
@@ -494,6 +673,10 @@ class ConnectionResponseFrame extends $pb.GeneratedMessage {
     ..aOM<OsInfo>(4, _omitFieldNames ? '' : 'osInfo', subBuilder: OsInfo.create)
     ..aI(5, _omitFieldNames ? '' : 'multiplexSocketBitmask')
     ..aI(6, _omitFieldNames ? '' : 'nearbyConnectionsVersion')
+    ..aI(7, _omitFieldNames ? '' : 'safeToDisconnectVersion')
+    ..aOM<LocationHint>(8, _omitFieldNames ? '' : 'locationHint',
+        subBuilder: LocationHint.create)
+    ..aI(9, _omitFieldNames ? '' : 'keepAliveTimeoutMillis')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -577,14 +760,47 @@ class ConnectionResponseFrame extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   void clearMultiplexSocketBitmask() => $_clearField(5);
 
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(6)
   $core.int get nearbyConnectionsVersion => $_getIZ(5);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(6)
   set nearbyConnectionsVersion($core.int value) => $_setSignedInt32(5, value);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(6)
   $core.bool hasNearbyConnectionsVersion() => $_has(5);
+  @$core.Deprecated('This field is deprecated.')
   @$pb.TagNumber(6)
   void clearNearbyConnectionsVersion() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.int get safeToDisconnectVersion => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set safeToDisconnectVersion($core.int value) => $_setSignedInt32(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasSafeToDisconnectVersion() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearSafeToDisconnectVersion() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  LocationHint get locationHint => $_getN(7);
+  @$pb.TagNumber(8)
+  set locationHint(LocationHint value) => $_setField(8, value);
+  @$pb.TagNumber(8)
+  $core.bool hasLocationHint() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearLocationHint() => $_clearField(8);
+  @$pb.TagNumber(8)
+  LocationHint ensureLocationHint() => $_ensure(7);
+
+  @$pb.TagNumber(9)
+  $core.int get keepAliveTimeoutMillis => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set keepAliveTimeoutMillis($core.int value) => $_setSignedInt32(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasKeepAliveTimeoutMillis() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearKeepAliveTimeoutMillis() => $_clearField(9);
 }
 
 class PayloadTransferFrame_PayloadHeader extends $pb.GeneratedMessage {
@@ -595,6 +811,7 @@ class PayloadTransferFrame_PayloadHeader extends $pb.GeneratedMessage {
     $core.bool? isSensitive,
     $core.String? fileName,
     $core.String? parentFolder,
+    $fixnum.Int64? lastModifiedTimestampMillis,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -603,6 +820,8 @@ class PayloadTransferFrame_PayloadHeader extends $pb.GeneratedMessage {
     if (isSensitive != null) result.isSensitive = isSensitive;
     if (fileName != null) result.fileName = fileName;
     if (parentFolder != null) result.parentFolder = parentFolder;
+    if (lastModifiedTimestampMillis != null)
+      result.lastModifiedTimestampMillis = lastModifiedTimestampMillis;
     return result;
   }
 
@@ -629,6 +848,7 @@ class PayloadTransferFrame_PayloadHeader extends $pb.GeneratedMessage {
     ..aOB(4, _omitFieldNames ? '' : 'isSensitive')
     ..aOS(5, _omitFieldNames ? '' : 'fileName')
     ..aOS(6, _omitFieldNames ? '' : 'parentFolder')
+    ..aInt64(7, _omitFieldNames ? '' : 'lastModifiedTimestampMillis')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -708,6 +928,16 @@ class PayloadTransferFrame_PayloadHeader extends $pb.GeneratedMessage {
   $core.bool hasParentFolder() => $_has(5);
   @$pb.TagNumber(6)
   void clearParentFolder() => $_clearField(6);
+
+  /// Time since the epoch in milliseconds.
+  @$pb.TagNumber(7)
+  $fixnum.Int64 get lastModifiedTimestampMillis => $_getI64(6);
+  @$pb.TagNumber(7)
+  set lastModifiedTimestampMillis($fixnum.Int64 value) => $_setInt64(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasLastModifiedTimestampMillis() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearLastModifiedTimestampMillis() => $_clearField(7);
 }
 
 /// Accompanies DATA packets.
@@ -716,11 +946,13 @@ class PayloadTransferFrame_PayloadChunk extends $pb.GeneratedMessage {
     $core.int? flags,
     $fixnum.Int64? offset,
     $core.List<$core.int>? body,
+    $core.int? index,
   }) {
     final result = create();
     if (flags != null) result.flags = flags;
     if (offset != null) result.offset = offset;
     if (body != null) result.body = body;
+    if (index != null) result.index = index;
     return result;
   }
 
@@ -743,6 +975,7 @@ class PayloadTransferFrame_PayloadChunk extends $pb.GeneratedMessage {
     ..aInt64(2, _omitFieldNames ? '' : 'offset')
     ..a<$core.List<$core.int>>(
         3, _omitFieldNames ? '' : 'body', $pb.PbFieldType.OY)
+    ..aI(4, _omitFieldNames ? '' : 'index')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -794,6 +1027,15 @@ class PayloadTransferFrame_PayloadChunk extends $pb.GeneratedMessage {
   $core.bool hasBody() => $_has(2);
   @$pb.TagNumber(3)
   void clearBody() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get index => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set index($core.int value) => $_setSignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasIndex() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearIndex() => $_clearField(4);
 }
 
 /// Accompanies CONTROL packets.
@@ -981,6 +1223,79 @@ class PayloadTransferFrame extends $pb.GeneratedMessage {
   PayloadTransferFrame_ControlMessage ensureControlMessage() => $_ensure(3);
 }
 
+/// Represents the network tuple a service can be reached at.
+class ServiceAddress extends $pb.GeneratedMessage {
+  factory ServiceAddress({
+    $core.List<$core.int>? ipAddress,
+    $core.int? port,
+  }) {
+    final result = create();
+    if (ipAddress != null) result.ipAddress = ipAddress;
+    if (port != null) result.port = port;
+    return result;
+  }
+
+  ServiceAddress._();
+
+  factory ServiceAddress.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ServiceAddress.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ServiceAddress',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'location.nearby.connections'),
+      createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(
+        1, _omitFieldNames ? '' : 'ipAddress', $pb.PbFieldType.OY)
+    ..aI(2, _omitFieldNames ? '' : 'port')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ServiceAddress clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ServiceAddress copyWith(void Function(ServiceAddress) updates) =>
+      super.copyWith((message) => updates(message as ServiceAddress))
+          as ServiceAddress;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ServiceAddress create() => ServiceAddress._();
+  @$core.override
+  ServiceAddress createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ServiceAddress getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ServiceAddress>(create);
+  static ServiceAddress? _defaultInstance;
+
+  /// This can be either IPv4 or IPv6 address.
+  /// IPv4 address are 4 bytes long, and IPv6 addresses are 16 bytes long.
+  /// Field with anything other than 4 or 16 bytes is invalid.
+  /// Addresses are represented in MSB-first order.
+  @$pb.TagNumber(1)
+  $core.List<$core.int> get ipAddress => $_getN(0);
+  @$pb.TagNumber(1)
+  set ipAddress($core.List<$core.int> value) => $_setBytes(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasIpAddress() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearIpAddress() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get port => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set port($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPort() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPort() => $_clearField(2);
+}
+
 /// Accompanies Medium.WIFI_HOTSPOT.
 class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials
     extends $pb.GeneratedMessage {
@@ -990,6 +1305,7 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials
     $core.int? port,
     $core.String? gateway,
     $core.int? frequency,
+    $core.Iterable<ServiceAddress>? addressCandidates,
   }) {
     final result = create();
     if (ssid != null) result.ssid = ssid;
@@ -997,6 +1313,8 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials
     if (port != null) result.port = port;
     if (gateway != null) result.gateway = gateway;
     if (frequency != null) result.frequency = frequency;
+    if (addressCandidates != null)
+      result.addressCandidates.addAll(addressCandidates);
     return result;
   }
 
@@ -1024,6 +1342,8 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials
     ..a<$core.String>(4, _omitFieldNames ? '' : 'gateway', $pb.PbFieldType.OS,
         defaultOrMaker: '0.0.0.0')
     ..aI(5, _omitFieldNames ? '' : 'frequency', defaultOrMaker: -1)
+    ..pPM<ServiceAddress>(6, _omitFieldNames ? '' : 'addressCandidates',
+        subBuilder: ServiceAddress.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1102,6 +1422,19 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials
   $core.bool hasFrequency() => $_has(4);
   @$pb.TagNumber(5)
   void clearFrequency() => $_clearField(5);
+
+  /// This replaces gateway and port fields for new clients.
+  /// The addresses list is ordered and should contain IPv6 addresses
+  /// followed by IPv4 addresses.
+  /// Link local addresses are acceptable here.  Receivers should scope these
+  /// addresses to the network interface used to connect to the hotspot.
+  /// Senders should continue to set gateway and port fields to the same
+  /// value as the last item in the list.
+  /// Receivers should ignore gateway and port fields if this field is set.
+  /// Receivers should attempt to connect to each of the address candidates
+  /// in order until a connection can be established.
+  @$pb.TagNumber(6)
+  $pb.PbList<ServiceAddress> get addressCandidates => $_getList(5);
 }
 
 /// Accompanies Medium.WIFI_LAN.
@@ -1110,10 +1443,13 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket
   factory BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket({
     $core.List<$core.int>? ipAddress,
     $core.int? wifiPort,
+    $core.Iterable<ServiceAddress>? addressCandidates,
   }) {
     final result = create();
     if (ipAddress != null) result.ipAddress = ipAddress;
     if (wifiPort != null) result.wifiPort = wifiPort;
+    if (addressCandidates != null)
+      result.addressCandidates.addAll(addressCandidates);
     return result;
   }
 
@@ -1138,6 +1474,8 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket
     ..a<$core.List<$core.int>>(
         1, _omitFieldNames ? '' : 'ipAddress', $pb.PbFieldType.OY)
     ..aI(2, _omitFieldNames ? '' : 'wifiPort')
+    ..pPM<ServiceAddress>(3, _omitFieldNames ? '' : 'addressCandidates',
+        subBuilder: ServiceAddress.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1187,6 +1525,19 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket
   $core.bool hasWifiPort() => $_has(1);
   @$pb.TagNumber(2)
   void clearWifiPort() => $_clearField(2);
+
+  /// This replaces ip_address and wifi_port fields for new clients.
+  /// The addresses list is ordered and should contain IPv6 addresses
+  /// followed by IPv4 addresses.
+  /// Link local addresses cannot be used here.
+  /// Senders should continue to set ip_address and wifi_port fields to the
+  /// same value as the last item in the list.
+  /// Receivers should ignore ip_address and wifi_port fields if this field
+  /// is set.
+  /// Receivers should attempt to connect to each of the address candidates
+  /// in order until a connection can be established.
+  @$pb.TagNumber(3)
+  $pb.PbList<ServiceAddress> get addressCandidates => $_getList(2);
 }
 
 /// Accompanies Medium.BLUETOOTH.
@@ -1381,6 +1732,9 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials
     $core.int? port,
     $core.int? frequency,
     $core.String? gateway,
+    $core.List<$core.int>? ipV6Address,
+    $core.String? serviceName,
+    $core.String? pin,
   }) {
     final result = create();
     if (ssid != null) result.ssid = ssid;
@@ -1388,6 +1742,9 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials
     if (port != null) result.port = port;
     if (frequency != null) result.frequency = frequency;
     if (gateway != null) result.gateway = gateway;
+    if (ipV6Address != null) result.ipV6Address = ipV6Address;
+    if (serviceName != null) result.serviceName = serviceName;
+    if (pin != null) result.pin = pin;
     return result;
   }
 
@@ -1415,6 +1772,10 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials
     ..aI(4, _omitFieldNames ? '' : 'frequency')
     ..a<$core.String>(5, _omitFieldNames ? '' : 'gateway', $pb.PbFieldType.OS,
         defaultOrMaker: '0.0.0.0')
+    ..a<$core.List<$core.int>>(
+        6, _omitFieldNames ? '' : 'ipV6Address', $pb.PbFieldType.OY)
+    ..aOS(7, _omitFieldNames ? '' : 'serviceName')
+    ..aOS(8, _omitFieldNames ? '' : 'pin')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1492,6 +1853,49 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials
   $core.bool hasGateway() => $_has(4);
   @$pb.TagNumber(5)
   void clearGateway() => $_clearField(5);
+
+  /// IPv6 link-local address, network order (128bits).
+  /// The GO should listen on both IPv4 and IPv6 addresses.
+  /// https://en.wikipedia.org/wiki/Link-local_address#IPv6
+  @$pb.TagNumber(6)
+  $core.List<$core.int> get ipV6Address => $_getN(5);
+  @$pb.TagNumber(6)
+  set ipV6Address($core.List<$core.int> value) => $_setBytes(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasIpV6Address() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearIpV6Address() => $_clearField(6);
+
+  /// Windows only supports WifiDirect with Service Discovey. Its
+  /// credentials is the service_name/pin.
+  @$pb.TagNumber(7)
+  $core.String get serviceName => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set serviceName($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasServiceName() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearServiceName() => $_clearField(7);
+
+  /// WifiDirect spec requires that pin is exactly 8 digits. The first 7
+  /// digits are the PIN. The last 1 digit is a checksum calculated using a
+  /// specific algorithm (CRC-8). However, the Windows WinRT
+  /// WiFiDirectServiceAdvertiser::ConnectAsync() that we use does NOT
+  /// enforce the CRC-8 checksum for a WPS PIN because: 1. The ConnectAsync
+  /// PIN is NOT necessarily a WPS PIN. 2. WPS PIN validation is performed by
+  /// the Wi-Fi driver/firmware. 3. WFDS connections often bypass or replace
+  /// WPS PIN authentication
+  /// pin is exchanged in the connection handshake stage, but we create and
+  /// save it before starting GO, so we can send it to GC side for
+  /// authentication.
+  @$pb.TagNumber(8)
+  $core.String get pin => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set pin($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasPin() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearPin() => $_clearField(8);
 }
 
 /// Accompanies Medium.WEB_RTC
@@ -1582,6 +1986,194 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials
   LocationHint ensureLocationHint() => $_ensure(1);
 }
 
+/// Accompanies Medium.AWDL.
+class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials
+    extends $pb.GeneratedMessage {
+  factory BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials({
+    $core.String? serviceName,
+    $core.String? serviceType,
+    $core.String? password,
+  }) {
+    final result = create();
+    if (serviceName != null) result.serviceName = serviceName;
+    if (serviceType != null) result.serviceType = serviceType;
+    if (password != null) result.password = password;
+    return result;
+  }
+
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials._();
+
+  factory BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials.fromBuffer(
+          $core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials.fromJson(
+          $core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames
+          ? ''
+          : 'BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'location.nearby.connections'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'serviceName')
+    ..aOS(2, _omitFieldNames ? '' : 'serviceType')
+    ..aOS(3, _omitFieldNames ? '' : 'password')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials clone() =>
+      deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials copyWith(
+          void Function(
+                  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials)
+              updates) =>
+      super.copyWith((message) => updates(message
+              as BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials))
+          as BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials
+      create() =>
+          BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials._();
+  @$core.override
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials
+      createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials
+      getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<
+              BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials>(
+          create);
+  static BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials?
+      _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get serviceName => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set serviceName($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasServiceName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearServiceName() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get serviceType => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set serviceType($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasServiceType() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearServiceType() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get password => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set password($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasPassword() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearPassword() => $_clearField(3);
+}
+
+class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest
+    extends $pb.GeneratedMessage {
+  factory BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest({
+    $core.Iterable<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium>?
+        mediums,
+    MediumMetadata? mediumMetaData,
+  }) {
+    final result = create();
+    if (mediums != null) result.mediums.addAll(mediums);
+    if (mediumMetaData != null) result.mediumMetaData = mediumMetaData;
+    return result;
+  }
+
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest._();
+
+  factory BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest.fromBuffer(
+          $core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest.fromJson(
+          $core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames
+          ? ''
+          : 'BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'location.nearby.connections'),
+      createEmptyInstance: create)
+    ..pc<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium>(
+        1, _omitFieldNames ? '' : 'mediums', $pb.PbFieldType.KE,
+        valueOf:
+            BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium.valueOf,
+        enumValues:
+            BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium.values,
+        defaultEnumValue:
+            BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium
+                .UNKNOWN_MEDIUM)
+    ..aOM<MediumMetadata>(2, _omitFieldNames ? '' : 'mediumMetaData',
+        subBuilder: MediumMetadata.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest clone() =>
+      deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest copyWith(
+          void Function(
+                  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest)
+              updates) =>
+      super.copyWith((message) => updates(message
+              as BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest))
+          as BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest
+      create() =>
+          BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest
+              ._();
+  @$core.override
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest
+      createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest
+      getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<
+              BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest>(
+          create);
+  static BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest?
+      _defaultInstance;
+
+  /// Supported mediums on the advertiser device.
+  @$pb.TagNumber(1)
+  $pb.PbList<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium>
+      get mediums => $_getList(0);
+
+  @$pb.TagNumber(2)
+  MediumMetadata get mediumMetaData => $_getN(1);
+  @$pb.TagNumber(2)
+  set mediumMetaData(MediumMetadata value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasMediumMetaData() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMediumMetaData() => $_clearField(2);
+  @$pb.TagNumber(2)
+  MediumMetadata ensureMediumMetaData() => $_ensure(1);
+}
+
 /// Accompanies UPGRADE_PATH_AVAILABLE and UPGRADE_FAILURE events.
 class BandwidthUpgradeNegotiationFrame_UpgradePathInfo
     extends $pb.GeneratedMessage {
@@ -1601,6 +2193,10 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo
     BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials?
         webRtcCredentials,
     $core.bool? supportsClientIntroductionAck,
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest?
+        upgradePathRequest,
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials?
+        awdlCredentials,
   }) {
     final result = create();
     if (medium != null) result.medium = medium;
@@ -1618,6 +2214,9 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo
     if (webRtcCredentials != null) result.webRtcCredentials = webRtcCredentials;
     if (supportsClientIntroductionAck != null)
       result.supportsClientIntroductionAck = supportsClientIntroductionAck;
+    if (upgradePathRequest != null)
+      result.upgradePathRequest = upgradePathRequest;
+    if (awdlCredentials != null) result.awdlCredentials = awdlCredentials;
     return result;
   }
 
@@ -1675,6 +2274,16 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo
             BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials
                 .create)
     ..aOB(9, _omitFieldNames ? '' : 'supportsClientIntroductionAck')
+    ..aOM<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest>(
+        10, _omitFieldNames ? '' : 'upgradePathRequest',
+        subBuilder:
+            BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest
+                .create)
+    ..aOM<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials>(
+        11, _omitFieldNames ? '' : 'awdlCredentials',
+        subBuilder:
+            BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials
+                .create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1829,6 +2438,108 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo
   $core.bool hasSupportsClientIntroductionAck() => $_has(8);
   @$pb.TagNumber(9)
   void clearSupportsClientIntroductionAck() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest
+      get upgradePathRequest => $_getN(9);
+  @$pb.TagNumber(10)
+  set upgradePathRequest(
+          BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest
+              value) =>
+      $_setField(10, value);
+  @$pb.TagNumber(10)
+  $core.bool hasUpgradePathRequest() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearUpgradePathRequest() => $_clearField(10);
+  @$pb.TagNumber(10)
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest
+      ensureUpgradePathRequest() => $_ensure(9);
+
+  @$pb.TagNumber(11)
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials
+      get awdlCredentials => $_getN(10);
+  @$pb.TagNumber(11)
+  set awdlCredentials(
+          BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials
+              value) =>
+      $_setField(11, value);
+  @$pb.TagNumber(11)
+  $core.bool hasAwdlCredentials() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearAwdlCredentials() => $_clearField(11);
+  @$pb.TagNumber(11)
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials
+      ensureAwdlCredentials() => $_ensure(10);
+}
+
+/// Accompanies SAFE_TO_CLOSE_PRIOR_CHANNEL events.
+class BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel
+    extends $pb.GeneratedMessage {
+  factory BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel({
+    $core.int? staFrequency,
+  }) {
+    final result = create();
+    if (staFrequency != null) result.staFrequency = staFrequency;
+    return result;
+  }
+
+  BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel._();
+
+  factory BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel.fromBuffer(
+          $core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel.fromJson(
+          $core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames
+          ? ''
+          : 'BandwidthUpgradeNegotiationFrame.SafeToClosePriorChannel',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'location.nearby.connections'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'staFrequency')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel clone() =>
+      deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel copyWith(
+          void Function(
+                  BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel)
+              updates) =>
+      super.copyWith((message) => updates(message
+              as BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel))
+          as BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel create() =>
+      BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel._();
+  @$core.override
+  BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel
+      createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel
+      getDefault() => _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<
+          BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel>(create);
+  static BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel?
+      _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get staFrequency => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set staFrequency($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasStaFrequency() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearStaFrequency() => $_clearField(1);
 }
 
 /// Accompanies CLIENT_INTRODUCTION events.
@@ -1837,11 +2548,13 @@ class BandwidthUpgradeNegotiationFrame_ClientIntroduction
   factory BandwidthUpgradeNegotiationFrame_ClientIntroduction({
     $core.String? endpointId,
     $core.bool? supportsDisablingEncryption,
+    $core.String? lastEndpointId,
   }) {
     final result = create();
     if (endpointId != null) result.endpointId = endpointId;
     if (supportsDisablingEncryption != null)
       result.supportsDisablingEncryption = supportsDisablingEncryption;
+    if (lastEndpointId != null) result.lastEndpointId = lastEndpointId;
     return result;
   }
 
@@ -1865,6 +2578,7 @@ class BandwidthUpgradeNegotiationFrame_ClientIntroduction
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'endpointId')
     ..aOB(2, _omitFieldNames ? '' : 'supportsDisablingEncryption')
+    ..aOS(3, _omitFieldNames ? '' : 'lastEndpointId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1909,6 +2623,15 @@ class BandwidthUpgradeNegotiationFrame_ClientIntroduction
   $core.bool hasSupportsDisablingEncryption() => $_has(1);
   @$pb.TagNumber(2)
   void clearSupportsDisablingEncryption() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get lastEndpointId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set lastEndpointId($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLastEndpointId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLastEndpointId() => $_clearField(3);
 }
 
 /// Accompanies CLIENT_INTRODUCTION_ACK events.
@@ -1970,6 +2693,8 @@ class BandwidthUpgradeNegotiationFrame extends $pb.GeneratedMessage {
     BandwidthUpgradeNegotiationFrame_ClientIntroduction? clientIntroduction,
     BandwidthUpgradeNegotiationFrame_ClientIntroductionAck?
         clientIntroductionAck,
+    BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel?
+        safeToClosePriorChannel,
   }) {
     final result = create();
     if (eventType != null) result.eventType = eventType;
@@ -1978,6 +2703,8 @@ class BandwidthUpgradeNegotiationFrame extends $pb.GeneratedMessage {
       result.clientIntroduction = clientIntroduction;
     if (clientIntroductionAck != null)
       result.clientIntroductionAck = clientIntroductionAck;
+    if (safeToClosePriorChannel != null)
+      result.safeToClosePriorChannel = safeToClosePriorChannel;
     return result;
   }
 
@@ -2009,6 +2736,10 @@ class BandwidthUpgradeNegotiationFrame extends $pb.GeneratedMessage {
         4, _omitFieldNames ? '' : 'clientIntroductionAck',
         subBuilder:
             BandwidthUpgradeNegotiationFrame_ClientIntroductionAck.create)
+    ..aOM<BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel>(
+        5, _omitFieldNames ? '' : 'safeToClosePriorChannel',
+        subBuilder:
+            BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2088,14 +2819,101 @@ class BandwidthUpgradeNegotiationFrame extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   BandwidthUpgradeNegotiationFrame_ClientIntroductionAck
       ensureClientIntroductionAck() => $_ensure(3);
+
+  @$pb.TagNumber(5)
+  BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel
+      get safeToClosePriorChannel => $_getN(4);
+  @$pb.TagNumber(5)
+  set safeToClosePriorChannel(
+          BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel value) =>
+      $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasSafeToClosePriorChannel() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSafeToClosePriorChannel() => $_clearField(5);
+  @$pb.TagNumber(5)
+  BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel
+      ensureSafeToClosePriorChannel() => $_ensure(4);
+}
+
+class BandwidthUpgradeRetryFrame extends $pb.GeneratedMessage {
+  factory BandwidthUpgradeRetryFrame({
+    $core.Iterable<BandwidthUpgradeRetryFrame_Medium>? supportedMedium,
+    $core.bool? isRequest,
+  }) {
+    final result = create();
+    if (supportedMedium != null) result.supportedMedium.addAll(supportedMedium);
+    if (isRequest != null) result.isRequest = isRequest;
+    return result;
+  }
+
+  BandwidthUpgradeRetryFrame._();
+
+  factory BandwidthUpgradeRetryFrame.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory BandwidthUpgradeRetryFrame.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'BandwidthUpgradeRetryFrame',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'location.nearby.connections'),
+      createEmptyInstance: create)
+    ..pPE<BandwidthUpgradeRetryFrame_Medium>(
+        1, _omitFieldNames ? '' : 'supportedMedium',
+        enumValues: BandwidthUpgradeRetryFrame_Medium.values)
+    ..aOB(2, _omitFieldNames ? '' : 'isRequest')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BandwidthUpgradeRetryFrame clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  BandwidthUpgradeRetryFrame copyWith(
+          void Function(BandwidthUpgradeRetryFrame) updates) =>
+      super.copyWith(
+              (message) => updates(message as BandwidthUpgradeRetryFrame))
+          as BandwidthUpgradeRetryFrame;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static BandwidthUpgradeRetryFrame create() => BandwidthUpgradeRetryFrame._();
+  @$core.override
+  BandwidthUpgradeRetryFrame createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static BandwidthUpgradeRetryFrame getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<BandwidthUpgradeRetryFrame>(create);
+  static BandwidthUpgradeRetryFrame? _defaultInstance;
+
+  /// The mediums this device supports upgrading to. This list should be filtered
+  /// by both the strategy and this device's individual limitations.
+  @$pb.TagNumber(1)
+  $pb.PbList<BandwidthUpgradeRetryFrame_Medium> get supportedMedium =>
+      $_getList(0);
+
+  /// If true, expect the remote endpoint to send back the latest
+  /// supported_medium.
+  @$pb.TagNumber(2)
+  $core.bool get isRequest => $_getBF(1);
+  @$pb.TagNumber(2)
+  set isRequest($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasIsRequest() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearIsRequest() => $_clearField(2);
 }
 
 class KeepAliveFrame extends $pb.GeneratedMessage {
   factory KeepAliveFrame({
     $core.bool? ack,
+    $core.int? seqNum,
   }) {
     final result = create();
     if (ack != null) result.ack = ack;
+    if (seqNum != null) result.seqNum = seqNum;
     return result;
   }
 
@@ -2114,6 +2932,7 @@ class KeepAliveFrame extends $pb.GeneratedMessage {
           _omitMessageNames ? '' : 'location.nearby.connections'),
       createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'ack')
+    ..aI(2, _omitFieldNames ? '' : 'seqNum', fieldType: $pb.PbFieldType.OU3)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2144,6 +2963,16 @@ class KeepAliveFrame extends $pb.GeneratedMessage {
   $core.bool hasAck() => $_has(0);
   @$pb.TagNumber(1)
   void clearAck() => $_clearField(1);
+
+  /// The sequence number
+  @$pb.TagNumber(2)
+  $core.int get seqNum => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set seqNum($core.int value) => $_setUnsignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSeqNum() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSeqNum() => $_clearField(2);
 }
 
 /// Informs the remote side to immediately severe the socket connection.
@@ -2282,6 +3111,300 @@ class PairedKeyEncryptionFrame extends $pb.GeneratedMessage {
   void clearSignedData() => $_clearField(1);
 }
 
+/// Nearby Connections authentication frame, contains the bytes format of a
+/// DeviceProvider's authentication message.
+class AuthenticationMessageFrame extends $pb.GeneratedMessage {
+  factory AuthenticationMessageFrame({
+    $core.List<$core.int>? authMessage,
+  }) {
+    final result = create();
+    if (authMessage != null) result.authMessage = authMessage;
+    return result;
+  }
+
+  AuthenticationMessageFrame._();
+
+  factory AuthenticationMessageFrame.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AuthenticationMessageFrame.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AuthenticationMessageFrame',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'location.nearby.connections'),
+      createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(
+        1, _omitFieldNames ? '' : 'authMessage', $pb.PbFieldType.OY)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AuthenticationMessageFrame clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AuthenticationMessageFrame copyWith(
+          void Function(AuthenticationMessageFrame) updates) =>
+      super.copyWith(
+              (message) => updates(message as AuthenticationMessageFrame))
+          as AuthenticationMessageFrame;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AuthenticationMessageFrame create() => AuthenticationMessageFrame._();
+  @$core.override
+  AuthenticationMessageFrame createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AuthenticationMessageFrame getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AuthenticationMessageFrame>(create);
+  static AuthenticationMessageFrame? _defaultInstance;
+
+  /// An auth message generated by DeviceProvider.
+  /// To be sent to the remote device for verification during connection setups.
+  @$pb.TagNumber(1)
+  $core.List<$core.int> get authMessage => $_getN(0);
+  @$pb.TagNumber(1)
+  set authMessage($core.List<$core.int> value) => $_setBytes(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasAuthMessage() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAuthMessage() => $_clearField(1);
+}
+
+/// Nearby Connections authentication result frame.
+class AuthenticationResultFrame extends $pb.GeneratedMessage {
+  factory AuthenticationResultFrame({
+    $core.int? result,
+  }) {
+    final result$ = create();
+    if (result != null) result$.result = result;
+    return result$;
+  }
+
+  AuthenticationResultFrame._();
+
+  factory AuthenticationResultFrame.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AuthenticationResultFrame.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AuthenticationResultFrame',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'location.nearby.connections'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'result')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AuthenticationResultFrame clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AuthenticationResultFrame copyWith(
+          void Function(AuthenticationResultFrame) updates) =>
+      super.copyWith((message) => updates(message as AuthenticationResultFrame))
+          as AuthenticationResultFrame;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AuthenticationResultFrame create() => AuthenticationResultFrame._();
+  @$core.override
+  AuthenticationResultFrame createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AuthenticationResultFrame getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AuthenticationResultFrame>(create);
+  static AuthenticationResultFrame? _defaultInstance;
+
+  /// The authentication result. Non null if this frame is used to exchange
+  /// authentication result.
+  @$pb.TagNumber(1)
+  $core.int get result => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set result($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasResult() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearResult() => $_clearField(1);
+}
+
+class AutoResumeFrame extends $pb.GeneratedMessage {
+  factory AutoResumeFrame({
+    AutoResumeFrame_EventType? eventType,
+    $fixnum.Int64? pendingPayloadId,
+    $core.int? nextPayloadChunkIndex,
+    $core.int? version,
+  }) {
+    final result = create();
+    if (eventType != null) result.eventType = eventType;
+    if (pendingPayloadId != null) result.pendingPayloadId = pendingPayloadId;
+    if (nextPayloadChunkIndex != null)
+      result.nextPayloadChunkIndex = nextPayloadChunkIndex;
+    if (version != null) result.version = version;
+    return result;
+  }
+
+  AutoResumeFrame._();
+
+  factory AutoResumeFrame.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AutoResumeFrame.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AutoResumeFrame',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'location.nearby.connections'),
+      createEmptyInstance: create)
+    ..aE<AutoResumeFrame_EventType>(1, _omitFieldNames ? '' : 'eventType',
+        enumValues: AutoResumeFrame_EventType.values)
+    ..aInt64(2, _omitFieldNames ? '' : 'pendingPayloadId')
+    ..aI(3, _omitFieldNames ? '' : 'nextPayloadChunkIndex')
+    ..aI(4, _omitFieldNames ? '' : 'version')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AutoResumeFrame clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AutoResumeFrame copyWith(void Function(AutoResumeFrame) updates) =>
+      super.copyWith((message) => updates(message as AutoResumeFrame))
+          as AutoResumeFrame;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AutoResumeFrame create() => AutoResumeFrame._();
+  @$core.override
+  AutoResumeFrame createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AutoResumeFrame getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AutoResumeFrame>(create);
+  static AutoResumeFrame? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  AutoResumeFrame_EventType get eventType => $_getN(0);
+  @$pb.TagNumber(1)
+  set eventType(AutoResumeFrame_EventType value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasEventType() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEventType() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get pendingPayloadId => $_getI64(1);
+  @$pb.TagNumber(2)
+  set pendingPayloadId($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPendingPayloadId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPendingPayloadId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get nextPayloadChunkIndex => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set nextPayloadChunkIndex($core.int value) => $_setSignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasNextPayloadChunkIndex() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNextPayloadChunkIndex() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get version => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set version($core.int value) => $_setSignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasVersion() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearVersion() => $_clearField(4);
+}
+
+class AutoReconnectFrame extends $pb.GeneratedMessage {
+  factory AutoReconnectFrame({
+    $core.String? endpointId,
+    AutoReconnectFrame_EventType? eventType,
+    $core.String? lastEndpointId,
+  }) {
+    final result = create();
+    if (endpointId != null) result.endpointId = endpointId;
+    if (eventType != null) result.eventType = eventType;
+    if (lastEndpointId != null) result.lastEndpointId = lastEndpointId;
+    return result;
+  }
+
+  AutoReconnectFrame._();
+
+  factory AutoReconnectFrame.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AutoReconnectFrame.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AutoReconnectFrame',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'location.nearby.connections'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'endpointId')
+    ..aE<AutoReconnectFrame_EventType>(2, _omitFieldNames ? '' : 'eventType',
+        enumValues: AutoReconnectFrame_EventType.values)
+    ..aOS(3, _omitFieldNames ? '' : 'lastEndpointId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AutoReconnectFrame clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AutoReconnectFrame copyWith(void Function(AutoReconnectFrame) updates) =>
+      super.copyWith((message) => updates(message as AutoReconnectFrame))
+          as AutoReconnectFrame;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AutoReconnectFrame create() => AutoReconnectFrame._();
+  @$core.override
+  AutoReconnectFrame createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AutoReconnectFrame getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AutoReconnectFrame>(create);
+  static AutoReconnectFrame? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get endpointId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set endpointId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasEndpointId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEndpointId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  AutoReconnectFrame_EventType get eventType => $_getN(1);
+  @$pb.TagNumber(2)
+  set eventType(AutoReconnectFrame_EventType value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasEventType() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearEventType() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get lastEndpointId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set lastEndpointId($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLastEndpointId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLastEndpointId() => $_clearField(3);
+}
+
 class MediumMetadata extends $pb.GeneratedMessage {
   factory MediumMetadata({
     $core.bool? supports5Ghz,
@@ -2295,6 +3418,9 @@ class MediumMetadata extends $pb.GeneratedMessage {
     WifiLanUsableChannels? wifiLanUsableChannels,
     WifiAwareUsableChannels? wifiAwareUsableChannels,
     WifiHotspotStaUsableChannels? wifiHotspotStaUsableChannels,
+    MediumRole? mediumRole,
+    $core.Iterable<MediumMetadata_WifiDirectAuthType>?
+        supportedWifiDirectAuthTypes,
   }) {
     final result = create();
     if (supports5Ghz != null) result.supports5Ghz = supports5Ghz;
@@ -2312,6 +3438,9 @@ class MediumMetadata extends $pb.GeneratedMessage {
       result.wifiAwareUsableChannels = wifiAwareUsableChannels;
     if (wifiHotspotStaUsableChannels != null)
       result.wifiHotspotStaUsableChannels = wifiHotspotStaUsableChannels;
+    if (mediumRole != null) result.mediumRole = mediumRole;
+    if (supportedWifiDirectAuthTypes != null)
+      result.supportedWifiDirectAuthTypes.addAll(supportedWifiDirectAuthTypes);
     return result;
   }
 
@@ -2350,6 +3479,16 @@ class MediumMetadata extends $pb.GeneratedMessage {
     ..aOM<WifiHotspotStaUsableChannels>(
         11, _omitFieldNames ? '' : 'wifiHotspotStaUsableChannels',
         subBuilder: WifiHotspotStaUsableChannels.create)
+    ..aOM<MediumRole>(12, _omitFieldNames ? '' : 'mediumRole',
+        subBuilder: MediumRole.create)
+    ..pc<MediumMetadata_WifiDirectAuthType>(
+        13,
+        _omitFieldNames ? '' : 'supportedWifiDirectAuthTypes',
+        $pb.PbFieldType.KE,
+        valueOf: MediumMetadata_WifiDirectAuthType.valueOf,
+        enumValues: MediumMetadata_WifiDirectAuthType.values,
+        defaultEnumValue:
+            MediumMetadata_WifiDirectAuthType.WIFI_DIRECT_TYPE_UNKNOWN)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2498,6 +3637,23 @@ class MediumMetadata extends $pb.GeneratedMessage {
   @$pb.TagNumber(11)
   WifiHotspotStaUsableChannels ensureWifiHotspotStaUsableChannels() =>
       $_ensure(10);
+
+  /// The supported medium roles.
+  @$pb.TagNumber(12)
+  MediumRole get mediumRole => $_getN(11);
+  @$pb.TagNumber(12)
+  set mediumRole(MediumRole value) => $_setField(12, value);
+  @$pb.TagNumber(12)
+  $core.bool hasMediumRole() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearMediumRole() => $_clearField(12);
+  @$pb.TagNumber(12)
+  MediumRole ensureMediumRole() => $_ensure(11);
+
+  /// The supported WifiDirect auth types.
+  @$pb.TagNumber(13)
+  $pb.PbList<MediumMetadata_WifiDirectAuthType>
+      get supportedWifiDirectAuthTypes => $_getList(12);
 }
 
 /// Available channels on the local device.
@@ -2758,6 +3914,153 @@ class WifiHotspotStaUsableChannels extends $pb.GeneratedMessage {
   $pb.PbList<$core.int> get channels => $_getList(0);
 }
 
+/// The medium roles.
+class MediumRole extends $pb.GeneratedMessage {
+  factory MediumRole({
+    $core.bool? supportWifiDirectGroupOwner,
+    $core.bool? supportWifiDirectGroupClient,
+    $core.bool? supportWifiHotspotHost,
+    $core.bool? supportWifiHotspotClient,
+    $core.bool? supportWifiAwarePublisher,
+    $core.bool? supportWifiAwareSubscriber,
+    $core.bool? supportAwdlPublisher,
+    $core.bool? supportAwdlSubscriber,
+  }) {
+    final result = create();
+    if (supportWifiDirectGroupOwner != null)
+      result.supportWifiDirectGroupOwner = supportWifiDirectGroupOwner;
+    if (supportWifiDirectGroupClient != null)
+      result.supportWifiDirectGroupClient = supportWifiDirectGroupClient;
+    if (supportWifiHotspotHost != null)
+      result.supportWifiHotspotHost = supportWifiHotspotHost;
+    if (supportWifiHotspotClient != null)
+      result.supportWifiHotspotClient = supportWifiHotspotClient;
+    if (supportWifiAwarePublisher != null)
+      result.supportWifiAwarePublisher = supportWifiAwarePublisher;
+    if (supportWifiAwareSubscriber != null)
+      result.supportWifiAwareSubscriber = supportWifiAwareSubscriber;
+    if (supportAwdlPublisher != null)
+      result.supportAwdlPublisher = supportAwdlPublisher;
+    if (supportAwdlSubscriber != null)
+      result.supportAwdlSubscriber = supportAwdlSubscriber;
+    return result;
+  }
+
+  MediumRole._();
+
+  factory MediumRole.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory MediumRole.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'MediumRole',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'location.nearby.connections'),
+      createEmptyInstance: create)
+    ..aOB(1, _omitFieldNames ? '' : 'supportWifiDirectGroupOwner')
+    ..aOB(2, _omitFieldNames ? '' : 'supportWifiDirectGroupClient')
+    ..aOB(3, _omitFieldNames ? '' : 'supportWifiHotspotHost')
+    ..aOB(4, _omitFieldNames ? '' : 'supportWifiHotspotClient')
+    ..aOB(5, _omitFieldNames ? '' : 'supportWifiAwarePublisher')
+    ..aOB(6, _omitFieldNames ? '' : 'supportWifiAwareSubscriber')
+    ..aOB(7, _omitFieldNames ? '' : 'supportAwdlPublisher')
+    ..aOB(8, _omitFieldNames ? '' : 'supportAwdlSubscriber')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MediumRole clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MediumRole copyWith(void Function(MediumRole) updates) =>
+      super.copyWith((message) => updates(message as MediumRole)) as MediumRole;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MediumRole create() => MediumRole._();
+  @$core.override
+  MediumRole createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static MediumRole getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<MediumRole>(create);
+  static MediumRole? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.bool get supportWifiDirectGroupOwner => $_getBF(0);
+  @$pb.TagNumber(1)
+  set supportWifiDirectGroupOwner($core.bool value) => $_setBool(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSupportWifiDirectGroupOwner() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSupportWifiDirectGroupOwner() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get supportWifiDirectGroupClient => $_getBF(1);
+  @$pb.TagNumber(2)
+  set supportWifiDirectGroupClient($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSupportWifiDirectGroupClient() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSupportWifiDirectGroupClient() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.bool get supportWifiHotspotHost => $_getBF(2);
+  @$pb.TagNumber(3)
+  set supportWifiHotspotHost($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSupportWifiHotspotHost() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSupportWifiHotspotHost() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get supportWifiHotspotClient => $_getBF(3);
+  @$pb.TagNumber(4)
+  set supportWifiHotspotClient($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasSupportWifiHotspotClient() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSupportWifiHotspotClient() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.bool get supportWifiAwarePublisher => $_getBF(4);
+  @$pb.TagNumber(5)
+  set supportWifiAwarePublisher($core.bool value) => $_setBool(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasSupportWifiAwarePublisher() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSupportWifiAwarePublisher() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.bool get supportWifiAwareSubscriber => $_getBF(5);
+  @$pb.TagNumber(6)
+  set supportWifiAwareSubscriber($core.bool value) => $_setBool(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasSupportWifiAwareSubscriber() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearSupportWifiAwareSubscriber() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.bool get supportAwdlPublisher => $_getBF(6);
+  @$pb.TagNumber(7)
+  set supportAwdlPublisher($core.bool value) => $_setBool(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasSupportAwdlPublisher() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearSupportAwdlPublisher() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.bool get supportAwdlSubscriber => $_getBF(7);
+  @$pb.TagNumber(8)
+  set supportAwdlSubscriber($core.bool value) => $_setBool(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasSupportAwdlSubscriber() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearSupportAwdlSubscriber() => $_clearField(8);
+}
+
 /// LocationHint is used to specify a location as well as format.
 class LocationHint extends $pb.GeneratedMessage {
   factory LocationHint({
@@ -2922,6 +4225,255 @@ class OsInfo extends $pb.GeneratedMessage {
   $core.bool hasType() => $_has(0);
   @$pb.TagNumber(1)
   void clearType() => $_clearField(1);
+}
+
+class ConnectionsDevice extends $pb.GeneratedMessage {
+  factory ConnectionsDevice({
+    $core.String? endpointId,
+    EndpointType? endpointType,
+    $core.List<$core.int>? connectivityInfoList,
+    $core.List<$core.int>? endpointInfo,
+  }) {
+    final result = create();
+    if (endpointId != null) result.endpointId = endpointId;
+    if (endpointType != null) result.endpointType = endpointType;
+    if (connectivityInfoList != null)
+      result.connectivityInfoList = connectivityInfoList;
+    if (endpointInfo != null) result.endpointInfo = endpointInfo;
+    return result;
+  }
+
+  ConnectionsDevice._();
+
+  factory ConnectionsDevice.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ConnectionsDevice.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ConnectionsDevice',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'location.nearby.connections'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'endpointId')
+    ..aE<EndpointType>(2, _omitFieldNames ? '' : 'endpointType',
+        enumValues: EndpointType.values)
+    ..a<$core.List<$core.int>>(
+        3, _omitFieldNames ? '' : 'connectivityInfoList', $pb.PbFieldType.OY)
+    ..a<$core.List<$core.int>>(
+        4, _omitFieldNames ? '' : 'endpointInfo', $pb.PbFieldType.OY)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ConnectionsDevice clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ConnectionsDevice copyWith(void Function(ConnectionsDevice) updates) =>
+      super.copyWith((message) => updates(message as ConnectionsDevice))
+          as ConnectionsDevice;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ConnectionsDevice create() => ConnectionsDevice._();
+  @$core.override
+  ConnectionsDevice createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ConnectionsDevice getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ConnectionsDevice>(create);
+  static ConnectionsDevice? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get endpointId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set endpointId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasEndpointId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEndpointId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  EndpointType get endpointType => $_getN(1);
+  @$pb.TagNumber(2)
+  set endpointType(EndpointType value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasEndpointType() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearEndpointType() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.List<$core.int> get connectivityInfoList => $_getN(2);
+  @$pb.TagNumber(3)
+  set connectivityInfoList($core.List<$core.int> value) => $_setBytes(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasConnectivityInfoList() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearConnectivityInfoList() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.List<$core.int> get endpointInfo => $_getN(3);
+  @$pb.TagNumber(4)
+  set endpointInfo($core.List<$core.int> value) => $_setBytes(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasEndpointInfo() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearEndpointInfo() => $_clearField(4);
+}
+
+class PresenceDevice extends $pb.GeneratedMessage {
+  factory PresenceDevice({
+    $core.String? endpointId,
+    EndpointType? endpointType,
+    $core.List<$core.int>? connectivityInfoList,
+    $fixnum.Int64? deviceId,
+    $core.String? deviceName,
+    PresenceDevice_DeviceType? deviceType,
+    $core.String? deviceImageUrl,
+    $core.Iterable<ConnectionRequestFrame_Medium>? discoveryMedium,
+    $core.Iterable<$core.int>? actions,
+    $core.Iterable<$fixnum.Int64>? identityType,
+  }) {
+    final result = create();
+    if (endpointId != null) result.endpointId = endpointId;
+    if (endpointType != null) result.endpointType = endpointType;
+    if (connectivityInfoList != null)
+      result.connectivityInfoList = connectivityInfoList;
+    if (deviceId != null) result.deviceId = deviceId;
+    if (deviceName != null) result.deviceName = deviceName;
+    if (deviceType != null) result.deviceType = deviceType;
+    if (deviceImageUrl != null) result.deviceImageUrl = deviceImageUrl;
+    if (discoveryMedium != null) result.discoveryMedium.addAll(discoveryMedium);
+    if (actions != null) result.actions.addAll(actions);
+    if (identityType != null) result.identityType.addAll(identityType);
+    return result;
+  }
+
+  PresenceDevice._();
+
+  factory PresenceDevice.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PresenceDevice.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PresenceDevice',
+      package: const $pb.PackageName(
+          _omitMessageNames ? '' : 'location.nearby.connections'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'endpointId')
+    ..aE<EndpointType>(2, _omitFieldNames ? '' : 'endpointType',
+        enumValues: EndpointType.values)
+    ..a<$core.List<$core.int>>(
+        3, _omitFieldNames ? '' : 'connectivityInfoList', $pb.PbFieldType.OY)
+    ..aInt64(4, _omitFieldNames ? '' : 'deviceId')
+    ..aOS(5, _omitFieldNames ? '' : 'deviceName')
+    ..aE<PresenceDevice_DeviceType>(6, _omitFieldNames ? '' : 'deviceType',
+        enumValues: PresenceDevice_DeviceType.values)
+    ..aOS(7, _omitFieldNames ? '' : 'deviceImageUrl')
+    ..pc<ConnectionRequestFrame_Medium>(
+        8, _omitFieldNames ? '' : 'discoveryMedium', $pb.PbFieldType.KE,
+        valueOf: ConnectionRequestFrame_Medium.valueOf,
+        enumValues: ConnectionRequestFrame_Medium.values,
+        defaultEnumValue: ConnectionRequestFrame_Medium.UNKNOWN_MEDIUM)
+    ..p<$core.int>(9, _omitFieldNames ? '' : 'actions', $pb.PbFieldType.K3)
+    ..p<$fixnum.Int64>(
+        10, _omitFieldNames ? '' : 'identityType', $pb.PbFieldType.K6)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PresenceDevice clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PresenceDevice copyWith(void Function(PresenceDevice) updates) =>
+      super.copyWith((message) => updates(message as PresenceDevice))
+          as PresenceDevice;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PresenceDevice create() => PresenceDevice._();
+  @$core.override
+  PresenceDevice createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PresenceDevice getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PresenceDevice>(create);
+  static PresenceDevice? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get endpointId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set endpointId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasEndpointId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEndpointId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  EndpointType get endpointType => $_getN(1);
+  @$pb.TagNumber(2)
+  set endpointType(EndpointType value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasEndpointType() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearEndpointType() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.List<$core.int> get connectivityInfoList => $_getN(2);
+  @$pb.TagNumber(3)
+  set connectivityInfoList($core.List<$core.int> value) => $_setBytes(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasConnectivityInfoList() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearConnectivityInfoList() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get deviceId => $_getI64(3);
+  @$pb.TagNumber(4)
+  set deviceId($fixnum.Int64 value) => $_setInt64(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasDeviceId() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearDeviceId() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get deviceName => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set deviceName($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasDeviceName() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearDeviceName() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  PresenceDevice_DeviceType get deviceType => $_getN(5);
+  @$pb.TagNumber(6)
+  set deviceType(PresenceDevice_DeviceType value) => $_setField(6, value);
+  @$pb.TagNumber(6)
+  $core.bool hasDeviceType() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearDeviceType() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get deviceImageUrl => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set deviceImageUrl($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasDeviceImageUrl() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearDeviceImageUrl() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $pb.PbList<ConnectionRequestFrame_Medium> get discoveryMedium => $_getList(7);
+
+  @$pb.TagNumber(9)
+  $pb.PbList<$core.int> get actions => $_getList(8);
+
+  @$pb.TagNumber(10)
+  $pb.PbList<$fixnum.Int64> get identityType => $_getList(9);
 }
 
 const $core.bool _omitFieldNames =

@@ -9,14 +9,25 @@ import 'package:crossdrop/nearby_share/manager/nearby_manager.dart';
 import 'package:crossdrop/notifications.dart'; // Import notification helpers
 import 'package:crossdrop/window/on_close_window.dart';
 import 'package:crossdrop/window/system_tray.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
+const MethodChannel _fileIntentChannel = MethodChannel(
+  'crossdrop/file_intents',
+);
 NotificationActionCallback? _activeNotificationActionHandler;
+final List<String> _initialOutgoingFilePaths = [];
+const Size _defaultWindowSize = Size(420, 640);
+const Size _minimumWindowSize = Size(360, 480);
+const Size _outgoingWindowSize = Size(440, 700);
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  _initialOutgoingFilePaths.addAll(_filePathsFromArgs(args));
 
   // Initialize Notifications
   await initializeNotifications(
@@ -25,15 +36,13 @@ void main() async {
 
   // Window Setup
   await windowManager.ensureInitialized();
-  final size = Platform.isLinux ? const Size(340, 360) : const Size(340, 410);
   WindowOptions windowOptions = WindowOptions(
     backgroundColor: Colors.transparent,
     skipTaskbar: true,
     titleBarStyle: TitleBarStyle.normal,
     windowButtonVisibility: true,
-    size: size,
-    minimumSize: size,
-    maximumSize: size,
+    size: _defaultWindowSize,
+    minimumSize: _minimumWindowSize,
     title: AppConfig.name,
   );
 
@@ -55,6 +64,29 @@ void main() async {
       child: const App(), // App and its descendants can now access both
     ),
   );
+}
+
+List<String> _filePathsFromArgs(Iterable<Object?> args) {
+  final paths = <String>[];
+  for (final arg in args) {
+    if (arg is! String || arg.isEmpty) continue;
+    String path;
+    if (arg.startsWith('file:')) {
+      try {
+        path = Uri.parse(arg).toFilePath();
+      } catch (_) {
+        continue;
+      }
+    } else {
+      path = arg;
+    }
+
+    if (FileSystemEntity.typeSync(path) == FileSystemEntityType.file &&
+        !paths.contains(path)) {
+      paths.add(path);
+    }
+  }
+  return paths;
 }
 
 // Top-level or static handler for notification actions
@@ -86,6 +118,15 @@ class _AppState extends State<App> implements NearbyEventsListener {
   final TextEditingController _deviceNameController = TextEditingController();
   bool isTextFieldEditing = false;
   final Map<String, _PendingTransfer> _pendingTransfers = {};
+  final List<String> _outgoingFilePaths = [];
+  String? _outgoingConnectionId;
+  String? _outgoingTargetDeviceId;
+  RemoteDeviceInfo? _outgoingTargetDevice;
+  String? _outgoingStatus;
+  String? _outgoingPin;
+  double? _outgoingProgress;
+  Exception? _outgoingError;
+  bool _isPickingOutgoingFiles = false;
 
   int _currentShapeIndex = 0;
   Timer? _animationTimer;
@@ -103,6 +144,11 @@ class _AppState extends State<App> implements NearbyEventsListener {
   void initState() {
     super.initState();
     // Manager is accessed later in didChangeDependencies
+    _fileIntentChannel.setMethodCallHandler(_handleFileIntentMethodCall);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _consumeInitialOutgoingFilePaths();
+      unawaited(_notifyNativeFileIntentReady());
+    });
     _triggerNextAnimationFrame();
   }
 
@@ -189,6 +235,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
     _deviceNameController.dispose();
     _animationTimer?.cancel();
     _activeNotificationActionHandler = null;
+    _fileIntentChannel.setMethodCallHandler(null);
     _manager.removeNearbyListener(this); // Unregister listener
     // Decide whether to stop broadcasting/discovery on UI dispose.
     // If using system tray, maybe keep it running? For now, let's stop.
@@ -272,10 +319,24 @@ class _AppState extends State<App> implements NearbyEventsListener {
     print(
       "UI Listener: Transfer Finished - ID: $connectionId, Success: $success, Error: $error",
     );
+    var stopOutgoingDiscovery = false;
     if (mounted) {
       setState(() {
         _pendingTransfers.remove(connectionId);
+        if (connectionId == _outgoingConnectionId ||
+            connectionId == _outgoingTargetDeviceId) {
+          _outgoingStatus = success ? 'Transfer finished' : 'Transfer failed';
+          _outgoingProgress = success ? 1 : _outgoingProgress;
+          _outgoingError = error;
+          _outgoingConnectionId = null;
+          _outgoingTargetDeviceId = null;
+          _outgoingTargetDevice = null;
+          stopOutgoingDiscovery = true;
+        }
       });
+    }
+    if (stopOutgoingDiscovery) {
+      unawaited(_manager.stopDiscovery());
     }
     // Clear the transfer notification
     cancelNotification(connectionId);
@@ -292,19 +353,33 @@ class _AppState extends State<App> implements NearbyEventsListener {
     print(
       "UI Listener: Outgoing Transfer Started - DeviceID: $deviceId, ConnID: $connectionId",
     );
-    // TODO: Update UI (e.g., show progress indicator)
+    setState(() {
+      _outgoingConnectionId = connectionId;
+      _outgoingTargetDeviceId = deviceId;
+      _outgoingStatus = 'Connecting...';
+      _outgoingProgress = null;
+      _outgoingError = null;
+    });
   }
 
   @override
   void onOutgoingTransferProgress(String connectionId, double progress) {
     // print("UI Listener: Outgoing Progress - ConnID: $connectionId, Progress: $progress");
-    // TODO: Update UI progress indicator
+    if (connectionId != _outgoingConnectionId) return;
+    setState(() {
+      _outgoingStatus = 'Sending...';
+      _outgoingProgress = progress.clamp(0, 1).toDouble();
+    });
   }
 
   @override
   void onOutgoingPinAvailable(String connectionId, String pin) {
     print("UI Listener: Outgoing PIN - ConnID: $connectionId, PIN: $pin");
-    // TODO: Display PIN to user
+    if (connectionId != _outgoingConnectionId) return;
+    setState(() {
+      _outgoingPin = pin;
+      _outgoingStatus = 'Waiting for receiver...';
+    });
   }
 
   Future<void> _respondToPendingTransfer(
@@ -325,6 +400,185 @@ class _AppState extends State<App> implements NearbyEventsListener {
       _respondToPendingTransfer(connectionId, accepted).catchError((e, s) {
         print("Failed to handle notification action for $connectionId: $e\n$s");
       }),
+    );
+  }
+
+  Future<dynamic> _handleFileIntentMethodCall(MethodCall call) async {
+    if (call.method != 'openFiles') {
+      throw MissingPluginException('Unknown method ${call.method}');
+    }
+    final args = call.arguments;
+    if (args is Iterable) {
+      await _startOutgoingFileSelection(_filePathsFromArgs(args));
+    }
+    return null;
+  }
+
+  Future<void> _notifyNativeFileIntentReady() async {
+    try {
+      await _fileIntentChannel.invokeMethod<void>('ready');
+    } on MissingPluginException {
+      // The channel is only implemented on platforms with native open-file hooks.
+    } catch (e, s) {
+      print('Failed to notify native file intent bridge: $e\n$s');
+    }
+  }
+
+  void _consumeInitialOutgoingFilePaths() {
+    if (_initialOutgoingFilePaths.isEmpty) return;
+    final paths = List<String>.from(_initialOutgoingFilePaths);
+    _initialOutgoingFilePaths.clear();
+    unawaited(_startOutgoingFileSelection(paths));
+  }
+
+  Future<void> _pickOutgoingFiles() async {
+    setState(() => _isPickingOutgoingFiles = true);
+    try {
+      final files = await openFiles();
+      await _startOutgoingFileSelection(files.map((file) => file.path));
+    } catch (e, s) {
+      print('Failed to pick outgoing files: $e\n$s');
+      setState(() {
+        _outgoingStatus = 'Could not open file picker';
+        _outgoingError = e is Exception ? e : Exception(e.toString());
+      });
+    } finally {
+      if (mounted) setState(() => _isPickingOutgoingFiles = false);
+    }
+  }
+
+  Future<void> _startOutgoingFileSelection(Iterable<String> paths) async {
+    final filePaths = _filePathsFromArgs(paths);
+    if (filePaths.isEmpty) return;
+
+    await windowManager.show();
+    await _ensureWindowSizeAtLeast(_outgoingWindowSize);
+    await windowManager.focus();
+    if (!mounted) return;
+
+    setState(() {
+      _outgoingFilePaths
+        ..clear()
+        ..addAll(filePaths);
+      _outgoingConnectionId = null;
+      _outgoingTargetDeviceId = null;
+      _outgoingTargetDevice = null;
+      _outgoingStatus = 'Looking for nearby devices...';
+      _outgoingPin = null;
+      _outgoingProgress = null;
+      _outgoingError = null;
+    });
+
+    try {
+      await _manager.startDiscovery();
+    } catch (e, s) {
+      print('Failed to start discovery for outgoing transfer: $e\n$s');
+      if (!mounted) return;
+      setState(() {
+        _outgoingStatus = 'Could not start discovery';
+        _outgoingError = e is Exception ? e : Exception(e.toString());
+      });
+    }
+  }
+
+  Future<void> _ensureWindowSizeAtLeast(Size targetSize) async {
+    try {
+      final currentSize = await windowManager.getSize();
+      final nextSize = Size(
+        currentSize.width < targetSize.width
+            ? targetSize.width
+            : currentSize.width,
+        currentSize.height < targetSize.height
+            ? targetSize.height
+            : currentSize.height,
+      );
+      if (nextSize != currentSize) {
+        await windowManager.setSize(nextSize);
+      }
+    } catch (e, s) {
+      print('Failed to resize window for outgoing transfer: $e\n$s');
+    }
+  }
+
+  Future<void> _sendSelectedFilesToDevice(RemoteDeviceInfo device) async {
+    if (_outgoingFilePaths.isEmpty || _outgoingConnectionId != null) return;
+    setState(() {
+      _outgoingTargetDeviceId = device.id;
+      _outgoingTargetDevice = device;
+      _outgoingStatus = 'Connecting to ${device.name}...';
+      _outgoingPin = null;
+      _outgoingProgress = null;
+      _outgoingError = null;
+    });
+
+    try {
+      await _manager.initiateTransfer(device.id, List.of(_outgoingFilePaths));
+      await _manager.stopDiscovery();
+    } catch (e, s) {
+      print('Failed to start outgoing transfer: $e\n$s');
+      if (!mounted) return;
+      setState(() {
+        _outgoingStatus = 'Could not start transfer';
+        _outgoingError = e is Exception ? e : Exception(e.toString());
+        _outgoingTargetDeviceId = null;
+        _outgoingTargetDevice = null;
+      });
+    }
+  }
+
+  Future<void> _clearOutgoingSelection() async {
+    await _manager.stopDiscovery();
+    if (!mounted) return;
+    setState(() {
+      _outgoingFilePaths.clear();
+      _outgoingConnectionId = null;
+      _outgoingTargetDeviceId = null;
+      _outgoingTargetDevice = null;
+      _outgoingStatus = null;
+      _outgoingPin = null;
+      _outgoingProgress = null;
+      _outgoingError = null;
+    });
+  }
+
+  Widget _buildOutgoingSendSection(NearbyConnectionManager manager) {
+    final selectedFilesLabel = _outgoingFilePaths.length == 1
+        ? p.basename(_outgoingFilePaths.single)
+        : '${_outgoingFilePaths.length} files selected';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        FilledButton.icon(
+          onPressed: _isPickingOutgoingFiles
+              ? null
+              : () => unawaited(_pickOutgoingFiles()),
+          icon: const Icon(Icons.upload_file),
+          label: Text(
+            _isPickingOutgoingFiles ? 'Selecting...' : 'Send files...',
+          ),
+        ),
+        if (_outgoingFilePaths.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _OutgoingSendPanel(
+            selectedFilesLabel: selectedFilesLabel,
+            status: _outgoingStatus,
+            pin: _outgoingPin,
+            progress: _outgoingProgress,
+            error: _outgoingError,
+            devices: manager.discoveredDevices,
+            isDiscovering: manager.isDiscovering,
+            busy:
+                _outgoingConnectionId != null ||
+                _outgoingTargetDeviceId != null,
+            selectedDeviceId: _outgoingTargetDeviceId,
+            selectedDevice: _outgoingTargetDevice,
+            onSendToDevice: (device) =>
+                unawaited(_sendSelectedFilesToDevice(device)),
+            onCancel: () => unawaited(_clearOutgoingSelection()),
+          ),
+        ],
+      ],
     );
   }
 
@@ -381,6 +635,8 @@ class _AppState extends State<App> implements NearbyEventsListener {
                 textAlign: TextAlign.start,
                 style: const TextStyle(fontSize: 16),
               ),
+              const SizedBox(height: 20),
+              _buildOutgoingSendSection(manager),
               const SizedBox(height: 20),
               Stack(
                 alignment: Alignment.center,
@@ -443,6 +699,171 @@ class _PendingTransfer {
   final RemoteDeviceInfo device;
 
   const _PendingTransfer({required this.metadata, required this.device});
+}
+
+class _OutgoingSendPanel extends StatelessWidget {
+  final String selectedFilesLabel;
+  final String? status;
+  final String? pin;
+  final double? progress;
+  final Exception? error;
+  final List<RemoteDeviceInfo> devices;
+  final bool isDiscovering;
+  final bool busy;
+  final String? selectedDeviceId;
+  final RemoteDeviceInfo? selectedDevice;
+  final ValueChanged<RemoteDeviceInfo> onSendToDevice;
+  final VoidCallback onCancel;
+
+  const _OutgoingSendPanel({
+    required this.selectedFilesLabel,
+    required this.status,
+    required this.pin,
+    required this.progress,
+    required this.error,
+    required this.devices,
+    required this.isDiscovering,
+    required this.busy,
+    required this.selectedDeviceId,
+    required this.selectedDevice,
+    required this.onSendToDevice,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final statusText = status ?? 'Choose a nearby device';
+    final visibleDevices = <RemoteDeviceInfo>[...devices];
+    final selected = selectedDevice;
+    if (selected != null &&
+        !visibleDevices.any((device) => device.id == selected.id)) {
+      visibleDevices.insert(0, selected);
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.dividerColor),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.file_present, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  selectedFilesLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Cancel send',
+                onPressed: busy ? null : onCancel,
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 34,
+                  height: 34,
+                ),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(statusText),
+          if (pin != null) ...[
+            const SizedBox(height: 4),
+            Text('PIN $pin', style: theme.textTheme.titleMedium),
+          ],
+          if (progress != null) ...[
+            const SizedBox(height: 8),
+            LinearProgressIndicator(value: progress),
+          ],
+          if (error != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              error.toString(),
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          ],
+          const SizedBox(height: 12),
+          if (visibleDevices.isEmpty)
+            Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: isDiscovering
+                      ? const CircularProgressIndicator(strokeWidth: 2)
+                      : null,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isDiscovering
+                      ? 'Scanning for devices...'
+                      : 'No nearby devices found',
+                ),
+              ],
+            )
+          else
+            for (final device in visibleDevices)
+              _OutgoingDeviceTile(
+                device: device,
+                selected: selectedDeviceId == device.id,
+                enabled: !busy || selectedDeviceId == device.id,
+                onTap: () => onSendToDevice(device),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OutgoingDeviceTile extends StatelessWidget {
+  final RemoteDeviceInfo device;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _OutgoingDeviceTile({
+    required this.device,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = switch (device.type) {
+      DeviceType.phone => Icons.smartphone,
+      DeviceType.tablet => Icons.tablet_mac,
+      DeviceType.computer => Icons.computer,
+      DeviceType.unknown => Icons.devices,
+    };
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon),
+      title: Text(device.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: selected ? const Text('Selected') : null,
+      trailing: selected
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.chevron_right),
+      enabled: enabled,
+      onTap: enabled ? onTap : null,
+    );
+  }
 }
 
 class _TransferRequestPanel extends StatelessWidget {

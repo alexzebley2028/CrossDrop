@@ -342,6 +342,12 @@ class NearbyConnectionManager extends ChangeNotifier
       print("Ignoring service ${service.name}: failed to decode 'n' attribute");
       return;
     }
+    if (endpointInfoBytes.length < 18) {
+      print(
+        "Ignoring service ${service.name}: endpoint info too short (${endpointInfoBytes.length} bytes)",
+      );
+      return;
+    }
 
     try {
       final endpointInfo = EndpointInfo.deserialize(endpointInfoBytes);

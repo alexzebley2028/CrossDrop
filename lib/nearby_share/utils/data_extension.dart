@@ -12,6 +12,26 @@ Uint8List generateRandomBytes(int length) {
   return Uint8List.fromList(values);
 }
 
+/// Generates a protocol-compatible random signed 64-bit integer.
+int generateRandomInt64() {
+  int value;
+  do {
+    final bytes = generateRandomBytes(8);
+    value = ByteData.sublistView(bytes).getInt64(0);
+  } while (value == 0);
+  return value;
+}
+
+/// Generates a small positive payload id for file/text payloads.
+///
+/// NearDrop and rquickshare use signed int64 payload ids, but Android receivers
+/// also accept the smaller positive ids this implementation used before the
+/// full-int64 setup payload work. Keep attachment payload ids in this range
+/// while setup BYTES payloads can continue to use full int64 ids.
+int generatePositivePayloadId() {
+  return Random.secure().nextInt(0x7fffffff) + 1;
+}
+
 /// Generates a protocol-compatible 4-character Nearby endpoint ID.
 String generateEndpointId() {
   final random = Random.secure();
