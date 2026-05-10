@@ -28,6 +28,7 @@ void main() async {
   final size = Platform.isLinux ? const Size(340, 360) : const Size(340, 410);
   WindowOptions windowOptions = WindowOptions(
     backgroundColor: Colors.transparent,
+    skipTaskbar: true,
     titleBarStyle: TitleBarStyle.normal,
     windowButtonVisibility: true,
     size: size,
@@ -39,7 +40,7 @@ void main() async {
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     windowManager.setPreventClose(true);
     windowManager.addListener(OnCloseWindowListener());
-    await windowManager.show();
+    await windowManager.hide();
   });
 
   runApp(
@@ -124,6 +125,11 @@ class _AppState extends State<App> implements NearbyEventsListener {
         _deviceNameController.text = currentDeviceName;
       });
       appSystemTray = AppSystemTray(currentDeviceName); // Initialize tray
+      try {
+        await appSystemTray?.initSystemTray();
+      } catch (e, s) {
+        print("Failed to initialize system tray: $e\n$s");
+      }
       try {
         print("Starting broadcasting with name: $currentDeviceName");
         await _manager.startBroadcasting(currentDeviceName);

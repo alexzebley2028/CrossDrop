@@ -12,15 +12,18 @@ class AppSystemTray {
   final Menu menu = Menu();
 
   Future<void> initSystemTray() async {
-    String path = 'assets/icons/system_tray_icon.png';
+    final path = Platform.isWindows
+        ? 'assets/icons/system_tray_icon.ico'
+        : 'assets/icons/system_tray_icon.png';
     await _systemTray.initSystemTray(iconPath: path, toolTip: 'CrossDrop');
 
     // handle system tray event
     _systemTray.registerSystemTrayEventHandler((eventName) {
-      if (eventName == kSystemTrayEventClick) {
+      if (eventName == kSystemTrayEventClick ||
+          eventName == kSystemTrayEventRightClick) {
         _systemTray.popUpContextMenu();
-      } else if (eventName == kSystemTrayEventRightClick) {
-        windowManager.show();
+      } else if (eventName == kSystemTrayEventDoubleClick) {
+        _showMainWindow();
       }
     });
 
@@ -31,18 +34,31 @@ class AppSystemTray {
     await menu.buildFrom([
       MenuItemLabel(label: 'Visible to everyone', enabled: false),
       MenuItemLabel(label: 'Device name: $deviceName', enabled: false),
+      MenuSeparator(),
       MenuItemLabel(
-        label: 'Settings',
-        onClicked: (menuItem) => windowManager.show(),
+        label: 'Open CrossDrop',
+        onClicked: (menuItem) => _showMainWindow(),
       ),
       MenuItemLabel(
-        label: 'Quit',
-        onClicked: (menuItem) {
-          windowManager.close();
+        label: 'Hide Window',
+        onClicked: (menuItem) => windowManager.hide(),
+      ),
+      MenuSeparator(),
+      MenuItemLabel(
+        label: 'Quit CrossDrop',
+        onClicked: (menuItem) async {
+          await _systemTray.destroy();
+          await windowManager.setPreventClose(false);
+          await windowManager.destroy();
           exit(0);
         },
       ),
     ]);
     await _systemTray.setContextMenu(menu);
+  }
+
+  Future<void> _showMainWindow() async {
+    await windowManager.show();
+    await windowManager.focus();
   }
 }
