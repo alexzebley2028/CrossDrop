@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:crossdrop/app_config.dart';
 import 'package:crossdrop/window/on_close_window.dart';
@@ -13,9 +14,10 @@ Future<void> configureMainWindow() async {
   await windowManager.ensureInitialized();
   final windowOptions = WindowOptions(
     backgroundColor: Colors.transparent,
+    alwaysOnTop: true,
     skipTaskbar: true,
-    titleBarStyle: TitleBarStyle.normal,
-    windowButtonVisibility: true,
+    titleBarStyle: TitleBarStyle.hidden,
+    windowButtonVisibility: false,
     size: defaultWindowSize,
     minimumSize: minimumWindowSize,
     title: AppConfig.name,
@@ -25,6 +27,13 @@ Future<void> configureMainWindow() async {
     windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.setPreventClose(true);
       windowManager.addListener(OnCloseWindowListener());
+      await windowManager.setResizable(false);
+      if (Platform.isMacOS || Platform.isWindows) {
+        await windowManager.setMinimizable(false);
+        await windowManager.setMaximizable(false);
+        await windowManager.setClosable(false);
+        await windowManager.setHasShadow(false);
+      }
       await windowManager.hide();
     }),
   );

@@ -5,4 +5,9 @@ class OnCloseWindowListener with WindowListener {
   void onWindowClose() {
     windowManager.hide();
   }
+
+  @override
+  void onWindowBlur() {
+    windowManager.hide();
+  }
 }

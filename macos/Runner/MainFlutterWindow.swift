@@ -6,6 +6,18 @@ class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     let windowFrame = self.frame
+
+    isOpaque = false
+    backgroundColor = .clear
+    hasShadow = false
+    titleVisibility = .hidden
+    titlebarAppearsTransparent = true
+
+    flutterViewController.backgroundColor = .clear
+    flutterViewController.view.wantsLayer = true
+    flutterViewController.view.layer?.isOpaque = false
+    flutterViewController.view.layer?.backgroundColor = NSColor.clear.cgColor
+
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
 

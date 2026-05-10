@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:crossdrop/animations.dart';
 import 'package:crossdrop/app/file_intents.dart';
@@ -330,9 +329,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
     final filePaths = filePathsFromArgs(paths);
     if (filePaths.isEmpty) return;
 
-    await windowManager.show();
-    await ensureWindowSizeAtLeast(outgoingWindowSize);
-    await windowManager.focus();
+    await _showMenuBarPanel(targetSize: outgoingWindowSize);
     if (!mounted) return;
 
     setState(() {
@@ -358,6 +355,18 @@ class _AppState extends State<App> implements NearbyEventsListener {
         _outgoingError = e is Exception ? e : Exception(e.toString());
       });
     }
+  }
+
+  Future<void> _showMenuBarPanel({Size targetSize = defaultWindowSize}) async {
+    final tray = _appSystemTray;
+    if (tray != null) {
+      await tray.showPanel(targetSize: targetSize);
+      return;
+    }
+
+    await ensureWindowSizeAtLeast(targetSize);
+    await windowManager.show();
+    await windowManager.focus();
   }
 
   Future<void> _sendSelectedFilesToDevice(RemoteDeviceInfo device) async {
@@ -420,84 +429,174 @@ class _AppState extends State<App> implements NearbyEventsListener {
       themeMode: appTheme.mode,
       debugShowCheckedModeBanner: false,
       home: Scaffold(
-        appBar: Platform.isIOS ? AppBar() : null,
-        body: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              ReceiveStatusHeader(
-                isBroadcasting: manager.isBroadcasting,
-                shapeIndex: _currentShapeIndex,
-                opacity: _opacity,
-                animationDuration: _currentAnimationDuration,
-              ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (_outgoingFilePaths.isNotEmpty)
-                        OutgoingSendPanel(
-                          outgoingFilePaths: _outgoingFilePaths,
-                          status: _outgoingStatus,
-                          pin: _outgoingPin,
-                          progress: _outgoingProgress,
-                          error: _outgoingError,
-                          devices: manager.discoveredDevices,
-                          isDiscovering: manager.isDiscovering,
-                          qrCodeUrl: manager.discoveryQrCodeUrl,
-                          busy:
-                              _outgoingConnectionId != null ||
-                              _outgoingTargetDeviceId != null,
-                          selectedDeviceId: _outgoingTargetDeviceId,
-                          selectedDevice: _outgoingTargetDevice,
-                          onSendToDevice: (device) =>
-                              unawaited(_sendSelectedFilesToDevice(device)),
-                          onCancel: () => unawaited(_clearOutgoingSelection()),
-                        ),
-                      if (_pendingTransfers.isNotEmpty) ...[
+        backgroundColor: Colors.transparent,
+        body: _MenuBarPanelFrame(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                ReceiveStatusHeader(
+                  isBroadcasting: manager.isBroadcasting,
+                  shapeIndex: _currentShapeIndex,
+                  opacity: _opacity,
+                  animationDuration: _currentAnimationDuration,
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                         if (_outgoingFilePaths.isNotEmpty)
-                          const SizedBox(height: 20),
-                        for (final entry in _pendingTransfers.entries)
-                          TransferRequestPanel(
-                            transfer: entry.value.metadata,
-                            device: entry.value.device,
-                            onAccept: () => unawaited(
-                              _respondToPendingTransfer(entry.key, true),
-                            ),
-                            onDecline: () => unawaited(
-                              _respondToPendingTransfer(entry.key, false),
-                            ),
+                          OutgoingSendPanel(
+                            outgoingFilePaths: _outgoingFilePaths,
+                            status: _outgoingStatus,
+                            pin: _outgoingPin,
+                            progress: _outgoingProgress,
+                            error: _outgoingError,
+                            devices: manager.discoveredDevices,
+                            isDiscovering: manager.isDiscovering,
+                            qrCodeUrl: manager.discoveryQrCodeUrl,
+                            busy:
+                                _outgoingConnectionId != null ||
+                                _outgoingTargetDeviceId != null,
+                            selectedDeviceId: _outgoingTargetDeviceId,
+                            selectedDevice: _outgoingTargetDevice,
+                            onSendToDevice: (device) =>
+                                unawaited(_sendSelectedFilesToDevice(device)),
+                            onCancel: () =>
+                                unawaited(_clearOutgoingSelection()),
                           ),
+                        if (_pendingTransfers.isNotEmpty) ...[
+                          if (_outgoingFilePaths.isNotEmpty)
+                            const SizedBox(height: 20),
+                          for (final entry in _pendingTransfers.entries)
+                            TransferRequestPanel(
+                              transfer: entry.value.metadata,
+                              device: entry.value.device,
+                              onAccept: () => unawaited(
+                                _respondToPendingTransfer(entry.key, true),
+                              ),
+                              onDecline: () => unawaited(
+                                _respondToPendingTransfer(entry.key, false),
+                              ),
+                            ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  OutgoingSendButton(
-                    isPickingOutgoingFiles: _isPickingOutgoingFiles,
-                    onPressed: () => unawaited(_pickOutgoingFiles()),
-                  ),
-                  const SizedBox(height: 12),
-                  DeviceNameField(
-                    controller: _deviceNameController,
-                    isEditing: _isTextFieldEditing,
-                    onChanged: (_) =>
-                        setState(() => _isTextFieldEditing = true),
-                    onSave: () => unawaited(_saveDeviceName()),
-                  ),
-                ],
-              ),
-            ],
+                const SizedBox(height: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    OutgoingSendButton(
+                      isPickingOutgoingFiles: _isPickingOutgoingFiles,
+                      onPressed: () => unawaited(_pickOutgoingFiles()),
+                    ),
+                    const SizedBox(height: 12),
+                    DeviceNameField(
+                      controller: _deviceNameController,
+                      isEditing: _isTextFieldEditing,
+                      onChanged: (_) =>
+                          setState(() => _isTextFieldEditing = true),
+                      onSave: () => unawaited(_saveDeviceName()),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+}
+
+class _MenuBarPanelFrame extends StatelessWidget {
+  const _MenuBarPanelFrame({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final surface = colorScheme.surface;
+    final borderColor = colorScheme.outlineVariant.withValues(alpha: 0.7);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 2, 8, 8),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: CustomPaint(
+                size: const Size(18, 10),
+                painter: _PanelArrowPainter(
+                  color: surface,
+                  borderColor: borderColor,
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            top: 8,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: borderColor),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x1A000000),
+                    blurRadius: 14,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Material(color: surface, child: child),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PanelArrowPainter extends CustomPainter {
+  const _PanelArrowPainter({required this.color, required this.borderColor});
+
+  final Color color;
+  final Color borderColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(size.width / 2, 0)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+
+    canvas.drawPath(path, Paint()..color = color);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _PanelArrowPainter oldDelegate) {
+    return color != oldDelegate.color || borderColor != oldDelegate.borderColor;
   }
 }

@@ -1,5 +1,9 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
+import 'package:crossdrop/app/window_setup.dart';
+import 'package:screen_retriever/screen_retriever.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -19,11 +23,12 @@ class AppSystemTray {
 
     // handle system tray event
     _systemTray.registerSystemTrayEventHandler((eventName) {
-      if (eventName == kSystemTrayEventClick ||
-          eventName == kSystemTrayEventRightClick) {
+      if (eventName == kSystemTrayEventClick) {
+        unawaited(togglePanel());
+      } else if (eventName == kSystemTrayEventRightClick) {
         _systemTray.popUpContextMenu();
       } else if (eventName == kSystemTrayEventDoubleClick) {
-        _showMainWindow();
+        unawaited(showPanel());
       }
     });
 
@@ -34,15 +39,6 @@ class AppSystemTray {
     await menu.buildFrom([
       MenuItemLabel(label: 'Visible to everyone', enabled: false),
       MenuItemLabel(label: 'Device name: $deviceName', enabled: false),
-      MenuSeparator(),
-      MenuItemLabel(
-        label: 'Open CrossDrop',
-        onClicked: (menuItem) => _showMainWindow(),
-      ),
-      MenuItemLabel(
-        label: 'Hide Window',
-        onClicked: (menuItem) => windowManager.hide(),
-      ),
       MenuSeparator(),
       MenuItemLabel(
         label: 'Quit CrossDrop',
@@ -57,8 +53,67 @@ class AppSystemTray {
     await _systemTray.setContextMenu(menu);
   }
 
-  Future<void> _showMainWindow() async {
+  Future<void> togglePanel() async {
+    if (await windowManager.isVisible()) {
+      await windowManager.hide();
+      return;
+    }
+    await showPanel();
+  }
+
+  Future<void> showPanel({Size targetSize = defaultWindowSize}) async {
+    await ensureWindowSizeAtLeast(targetSize);
+    await _positionPanelNearCursor();
     await windowManager.show();
     await windowManager.focus();
+  }
+
+  Future<void> _positionPanelNearCursor() async {
+    final cursor = await screenRetriever.getCursorScreenPoint();
+    final windowSize = await windowManager.getSize();
+    final screenBounds = await _visibleScreenBoundsFor(cursor);
+
+    const horizontalMargin = 8.0;
+    const verticalMargin = 1.0;
+    const gap = -8.0;
+    final left = _clampDouble(
+      cursor.dx - (windowSize.width / 2),
+      screenBounds.left + horizontalMargin,
+      screenBounds.right - windowSize.width - horizontalMargin,
+    );
+
+    final isCursorInTopHalf = cursor.dy < screenBounds.center.dy;
+    final preferredTop = isCursorInTopHalf
+        ? cursor.dy + gap
+        : cursor.dy - windowSize.height - gap;
+    final top = _clampDouble(
+      preferredTop,
+      screenBounds.top + verticalMargin,
+      screenBounds.bottom - windowSize.height - verticalMargin,
+    );
+
+    await windowManager.setBounds(
+      Rect.fromLTWH(left, top, windowSize.width, windowSize.height),
+    );
+  }
+
+  Future<Rect> _visibleScreenBoundsFor(Offset point) async {
+    final displays = await screenRetriever.getAllDisplays();
+    for (final display in displays) {
+      final bounds = _visibleBounds(display);
+      if (bounds.contains(point)) return bounds;
+    }
+    return _visibleBounds(await screenRetriever.getPrimaryDisplay());
+  }
+
+  Rect _visibleBounds(Display display) {
+    final position = display.visiblePosition ?? Offset.zero;
+    final size = display.visibleSize ?? display.size;
+    return position & size;
+  }
+
+  double _clampDouble(double value, double lowerLimit, double upperLimit) {
+    if (upperLimit < lowerLimit) return lowerLimit;
+    return value.clamp(lowerLimit, upperLimit).toDouble();
   }
 }
