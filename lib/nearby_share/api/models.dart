@@ -223,8 +223,13 @@ class NearbyUkey2Exception extends NearbyApiException {
   NearbyUkey2Exception() : super('UKEY2 Error');
 }
 
+class NearbyUkey2PeerAlertException extends NearbyApiException {
+  NearbyUkey2PeerAlertException(String alertType)
+    : super('Remote peer sent UKEY2 alert: $alertType');
+}
+
 class NearbyIOException extends NearbyApiException {
-  NearbyIOException() : super('Input/Output Error');
+  NearbyIOException([super.message = 'Input/Output Error']);
 }
 
 enum CancellationReason {

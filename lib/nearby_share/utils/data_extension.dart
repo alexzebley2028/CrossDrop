@@ -2,11 +2,27 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
+const String _endpointIdAlphabet =
+    '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
 /// Generates cryptographically secure random bytes.
 Uint8List generateRandomBytes(int length) {
   final random = Random.secure();
   final values = List<int>.generate(length, (i) => random.nextInt(256));
   return Uint8List.fromList(values);
+}
+
+/// Generates a protocol-compatible 4-character Nearby endpoint ID.
+String generateEndpointId() {
+  final random = Random.secure();
+  return String.fromCharCodes(
+    List<int>.generate(
+      4,
+      (_) => _endpointIdAlphabet.codeUnitAt(
+        random.nextInt(_endpointIdAlphabet.length),
+      ),
+    ),
+  );
 }
 
 /// Encodes bytes to a URL-safe Base64 string without padding.

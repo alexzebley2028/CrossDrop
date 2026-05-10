@@ -47,7 +47,8 @@ Future<void> initializeNotifications(
     ],
   );
 
-  // TODO: Add Linux initialization if needed
+  const LinuxInitializationSettings initializationSettingsLinux =
+      LinuxInitializationSettings(defaultActionName: 'Open');
 
   // *** ADD macOS parameter here ***
   final InitializationSettings initializationSettings = InitializationSettings(
@@ -55,7 +56,7 @@ Future<void> initializeNotifications(
     iOS: initializationSettingsDarwin, // Pass the Darwin settings for iOS
     macOS:
         initializationSettingsDarwin, // Pass the SAME Darwin settings for macOS
-    // linux: initializationSettingsLinux,
+    linux: initializationSettingsLinux,
   );
 
   await flutterLocalNotificationsPlugin.initialize(
@@ -134,11 +135,19 @@ Future<void> showTransferNotification(
         presentAlert: true,
         presentSound: true,
       );
+  const LinuxNotificationDetails linuxPlatformChannelSpecifics =
+      LinuxNotificationDetails(
+        actions: <LinuxNotificationAction>[
+          LinuxNotificationAction(key: 'ACCEPT', label: 'Accept'),
+          LinuxNotificationAction(key: 'DECLINE', label: 'Decline'),
+        ],
+      );
 
   const NotificationDetails platformChannelSpecifics = NotificationDetails(
     android: androidPlatformChannelSpecifics,
     iOS: iosPlatformChannelSpecifics,
     macOS: iosPlatformChannelSpecifics,
+    linux: linuxPlatformChannelSpecifics,
   );
 
   // Use connectionId or a derivative as the notification ID (needs to be int)
@@ -171,11 +180,14 @@ Future<void> showErrorNotification(
       );
   const DarwinNotificationDetails iosPlatformChannelSpecifics =
       DarwinNotificationDetails(); // No actions needed
+  const LinuxNotificationDetails linuxPlatformChannelSpecifics =
+      LinuxNotificationDetails();
 
   const NotificationDetails platformChannelSpecifics = NotificationDetails(
     android: androidPlatformChannelSpecifics,
     iOS: iosPlatformChannelSpecifics,
     macOS: iosPlatformChannelSpecifics,
+    linux: linuxPlatformChannelSpecifics,
   );
 
   final notificationId = ("${connectionId}_error").hashCode % 2147483647;

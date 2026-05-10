@@ -50,6 +50,7 @@ class InboundNearbyConnection extends NearbyConnection {
   InboundNearbyConnectionDelegate? delegate;
   Uint8List? _cipherCommitment;
   int _textPayloadID = 0;
+  bool _receivedClientConnectionResponse = false;
 
   // Store socket details
   final String _remoteIpAddress;
@@ -76,7 +77,7 @@ class InboundNearbyConnection extends NearbyConnection {
   }
 
   @override
-  void processReceivedFrame(Uint8List frameData) {
+  Future<void> processReceivedFrame(Uint8List frameData) async {
     print("Inbound $id: Processing frame in state $_currentState");
     try {
       switch (_currentState) {
@@ -91,22 +92,15 @@ class InboundNearbyConnection extends NearbyConnection {
           break;
         case InboundState.sentUkeyServerInit:
           final msg = ukey.Ukey2Message.fromBuffer(frameData);
-          _processUkey2ClientFinish(msg, frameData);
+          if (msg.messageType != ukey.Ukey2Message_Type.CLIENT_FINISH &&
+              _tryProcessClientConnectionResponse(frameData)) {
+            break;
+          }
+          await _processUkey2ClientFinish(msg, frameData);
           break;
         case InboundState.receivedUkeyClientFinish:
-          // Expecting encrypted CONNECTION_RESPONSE ACK from client (offline format)
-          // But the Swift code doesn't seem to wait for it, it sends its own ACCEPT
-          // Let's proceed assuming we might get encrypted frames now or later.
-          final smsg = sm.SecureMessage.fromBuffer(frameData);
-          decryptAndProcessReceivedSecureMessage(
-            smsg,
-          ).catchError(_handleAsyncError);
-          // Also handle the possibility of receiving the unencrypted ConnectionResponse ACK
-          // _processConnectionResponseAck(offline.OfflineFrame.fromBuffer(frameData)); ?
-          // For now, assume encrypted frames are next.
-          print(
-            "Inbound $id: Received frame after ClientFinish, assuming encrypted.",
-          );
+          final frame = offline.OfflineFrame.fromBuffer(frameData);
+          await _processConnectionResponseFrame(frame);
           break;
         case InboundState.sentConnectionResponse:
         case InboundState.sentPairedKeyResult:
@@ -115,9 +109,7 @@ class InboundNearbyConnection extends NearbyConnection {
         case InboundState.receivingFiles:
           // All subsequent frames should be encrypted SecureMessages
           final smsg = sm.SecureMessage.fromBuffer(frameData);
-          decryptAndProcessReceivedSecureMessage(
-            smsg,
-          ).catchError(_handleAsyncError);
+          await decryptAndProcessReceivedSecureMessage(smsg);
           break;
         case InboundState.disconnected:
           print("Inbound $id: Received frame while disconnected.");
@@ -128,7 +120,11 @@ class InboundNearbyConnection extends NearbyConnection {
         "Inbound $id: Deserialization error in state $_currentState: $e\n$s",
       );
       lastError = (e is Exception) ? e : Exception(e.toString());
-      if (_currentState == InboundState.receivedConnectionRequest ||
+      if (e is NearbyUkey2Exception) {
+        return;
+      } else if (e is NearbyUkey2PeerAlertException) {
+        if (!connectionClosed) protocolError();
+      } else if (_currentState == InboundState.receivedConnectionRequest ||
           _currentState == InboundState.sentUkeyServerInit) {
         sendUkey2Alert(
           ukey.Ukey2Alert_AlertType.BAD_MESSAGE,
@@ -137,15 +133,6 @@ class InboundNearbyConnection extends NearbyConnection {
         protocolError(); // Generic disconnect
       }
     }
-  }
-
-  Null _handleAsyncError(Object error, StackTrace stackTrace) {
-    print(
-      "Inbound $id: Async error during frame processing: $error\n$stackTrace",
-    );
-    lastError = (error is Exception) ? error : Exception(error.toString());
-    protocolError();
-    return null;
   }
 
   @override
@@ -188,10 +175,8 @@ class InboundNearbyConnection extends NearbyConnection {
         break;
       default:
         print(
-          "Inbound $id: Unexpected transfer setup frame in state $_currentState: ${frame.toProto3Json()}",
-        );
-        throw NearbyProtocolException(
-          "Unexpected transfer setup frame in state $_currentState",
+          "Inbound $id: Ignoring unexpected transfer setup frame in state "
+          "$_currentState: ${frame.toProto3Json()}",
         );
     }
   }
@@ -424,8 +409,20 @@ class InboundNearbyConnection extends NearbyConnection {
     _currentState = InboundState.sentUkeyServerInit;
   }
 
-  void _processUkey2ClientFinish(ukey.Ukey2Message msg, Uint8List rawMsgData) {
+  Future<void> _processUkey2ClientFinish(
+    ukey.Ukey2Message msg,
+    Uint8List rawMsgData,
+  ) async {
+    if (msg.messageType == ukey.Ukey2Message_Type.ALERT) {
+      final alert = msg.hasMessageData()
+          ? ukey.Ukey2Alert.fromBuffer(msg.messageData)
+          : null;
+      throw NearbyUkey2PeerAlertException(
+        alert?.type.name ?? 'missing alert data',
+      );
+    }
     if (msg.messageType != ukey.Ukey2Message_Type.CLIENT_FINISH) {
+      print("Inbound $id: Expected UKEY2 ClientFinish, got ${msg.messageType}");
       sendUkey2Alert(ukey.Ukey2Alert_AlertType.BAD_MESSAGE_TYPE);
       throw NearbyUkey2Exception();
     }
@@ -438,102 +435,128 @@ class InboundNearbyConnection extends NearbyConnection {
 
     if (_cipherCommitment == null) {
       // Should not happen if ClientInit processing was correct
-      throw StateError(
-        "Cipher commitment is null during ClientFinish processing",
-      );
+      sendUkey2Alert(ukey.Ukey2Alert_AlertType.BAD_MESSAGE_DATA);
+      throw NearbyUkey2Exception();
     }
 
-    // Verify commitment
-    Sha512()
-        .hash(rawMsgData)
-        .then((digest) {
-          if (!listsEqual(digest.bytes, _cipherCommitment!)) {
-            print("Cipher commitment mismatch!");
-            // Although Swift doesn't send an alert here, it seems appropriate
-            sendUkey2Alert(ukey.Ukey2Alert_AlertType.BAD_MESSAGE_DATA);
-            throw NearbyUkey2Exception();
-          }
-          print("Cipher commitment verified.");
+    final digest = await Sha512().hash(rawMsgData);
+    if (!listsEqual(digest.bytes, _cipherCommitment!)) {
+      print("Cipher commitment mismatch!");
+      sendUkey2Alert(ukey.Ukey2Alert_AlertType.BAD_MESSAGE_DATA);
+      throw NearbyUkey2Exception();
+    }
+    print("Cipher commitment verified.");
 
-          // Proceed with key finalization
-          try {
-            final clientFinish = ukey.Ukey2ClientFinished.fromBuffer(
-              msg.messageData,
-            );
-            if (!clientFinish.hasPublicKey()) {
-              throw NearbyRequiredFieldMissingException(
-                "ukey2clientFinish.publicKey",
-              );
-            }
-            final clientKeyProto = sm.GenericPublicKey.fromBuffer(
-              clientFinish.publicKey,
-            );
+    try {
+      final clientFinish = ukey.Ukey2ClientFinished.fromBuffer(msg.messageData);
+      if (!clientFinish.hasPublicKey()) {
+        throw NearbyRequiredFieldMissingException(
+          "ukey2clientFinish.publicKey",
+        );
+      }
+      final clientKeyProto = sm.GenericPublicKey.fromBuffer(
+        clientFinish.publicKey,
+      );
 
-            finalizeKeyExchange(clientKeyProto)
-                .then((_) {
-                  print("Inbound $id: UKEY2 Handshake Complete. PIN: $pinCode");
-                  _currentState = InboundState.receivedUkeyClientFinish;
+      await finalizeKeyExchange(clientKeyProto);
+      print("Inbound $id: UKEY2 Handshake Complete. PIN: $pinCode");
+      _currentState = InboundState.receivedUkeyClientFinish;
+      if (_receivedClientConnectionResponse) {
+        await _sendConnectionResponseAndPairedEncryption();
+      }
+    } catch (e, s) {
+      print("Error processing ClientFinish payload: $e\n$s");
+      sendUkey2Alert(ukey.Ukey2Alert_AlertType.BAD_MESSAGE_DATA);
+      throw NearbyUkey2Exception();
+    }
+  }
 
-                  // Send ConnectionResponse (ACCEPT) - Unencrypted in Swift, but should be encrypted?
-                  // The Swift code sends it *before* setting encryptionDone=true. Let's follow that.
-                  // The subsequent PairedKeyEncryption _is_ encrypted.
-                  final connResp = offline.ConnectionResponseFrame(
-                    response:
-                        offline.ConnectionResponseFrame_ResponseStatus.ACCEPT,
-                    status: 0, // OK status code
-                    osInfo: offline.OsInfo(
-                      type: offline.OsInfo_OsType.APPLE,
-                    ), // Mimic Swift
-                  );
-                  final v1Frame = offline.V1Frame(
-                    type: offline.V1Frame_FrameType.CONNECTION_RESPONSE,
-                    connectionResponse: connResp,
-                  );
-                  final offlineFrame = offline.OfflineFrame(
-                    version: offline.OfflineFrame_Version.V1,
-                    v1: v1Frame,
-                  );
-                  sendFrame(offlineFrame.writeToBuffer());
-                  print("Inbound $id: Sent unencrypted ConnectionResponse ACK");
+  bool _tryProcessClientConnectionResponse(Uint8List frameData) {
+    try {
+      final frame = offline.OfflineFrame.fromBuffer(frameData);
+      if (!frame.hasV1() ||
+          frame.v1.type != offline.V1Frame_FrameType.CONNECTION_RESPONSE ||
+          !frame.v1.hasConnectionResponse()) {
+        return false;
+      }
+      _validateClientConnectionResponse(frame);
+      _receivedClientConnectionResponse = true;
+      print("Inbound $id: Received early plaintext ConnectionResponse");
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 
-                  // NOW encryption is considered active for subsequent messages
-                  encryptionDone = true;
+  void _validateClientConnectionResponse(offline.OfflineFrame frame) {
+    if (!frame.hasV1() ||
+        frame.v1.type != offline.V1Frame_FrameType.CONNECTION_RESPONSE) {
+      throw NearbyProtocolException(
+        "Expected plaintext ConnectionResponse, got ${frame.v1.type}",
+      );
+    }
+    if (!frame.v1.hasConnectionResponse()) {
+      throw NearbyRequiredFieldMissingException("frame.v1.connectionResponse");
+    }
+    if (frame.v1.connectionResponse.response !=
+        offline.ConnectionResponseFrame_ResponseStatus.ACCEPT) {
+      throw NearbyProtocolException(
+        "Client rejected connection after UKEY2: ${frame.v1.connectionResponse.response}",
+      );
+    }
+  }
 
-                  // Send the first encrypted message: PairedKeyEncryption (dummy data like Swift)
-                  final pairedEncFrame = wire.PairedKeyEncryptionFrame(
-                    secretIdHash: generateRandomBytes(6),
-                    signedData: generateRandomBytes(72), // Matching Swift size
-                  );
-                  final v1WireFrame = wire.V1Frame(
-                    type: wire.V1Frame_FrameType.PAIRED_KEY_ENCRYPTION,
-                    pairedKeyEncryption: pairedEncFrame,
-                  );
-                  final wireFrame = wire.Frame(
-                    version: wire.Frame_Version.V1,
-                    v1: v1WireFrame,
-                  );
+  Future<void> _processConnectionResponseFrame(
+    offline.OfflineFrame frame,
+  ) async {
+    _validateClientConnectionResponse(frame);
+    _receivedClientConnectionResponse = true;
+    await _sendConnectionResponseAndPairedEncryption();
+  }
 
-                  // Send this encrypted setup frame
-                  sendTransferSetupFrame(wireFrame)
-                      .then((_) {
-                        print(
-                          "Inbound $id: Sent encrypted PairedKeyEncryption",
-                        );
-                        _currentState = InboundState
-                            .sentConnectionResponse; // State after *sending* our response+pairedKey
-                      })
-                      .catchError(_handleAsyncError);
-                })
-                .catchError(
-                  _handleAsyncError,
-                ); // Catch finalizeKeyExchange errors
-          } catch (e, s) {
-            print("Error processing ClientFinish payload: $e\n$s");
-            sendUkey2Alert(ukey.Ukey2Alert_AlertType.BAD_MESSAGE_DATA);
-            throw NearbyUkey2Exception();
-          }
-        })
-        .catchError(_handleAsyncError); // Catch SHA512 hash errors
+  Future<void> _sendConnectionResponseAndPairedEncryption() async {
+    final connResp = offline.ConnectionResponseFrame(
+      response: offline.ConnectionResponseFrame_ResponseStatus.ACCEPT,
+      status: 0,
+      osInfo: offline.OsInfo(type: _platformOsType()),
+    );
+    final v1Frame = offline.V1Frame(
+      type: offline.V1Frame_FrameType.CONNECTION_RESPONSE,
+      connectionResponse: connResp,
+    );
+    final offlineFrame = offline.OfflineFrame(
+      version: offline.OfflineFrame_Version.V1,
+      v1: v1Frame,
+    );
+    sendFrame(offlineFrame.writeToBuffer());
+    print("Inbound $id: Sent plaintext ConnectionResponse");
+
+    encryptionDone = true;
+
+    final pairedEncFrame = wire.PairedKeyEncryptionFrame(
+      secretIdHash: generateRandomBytes(6),
+      signedData: generateRandomBytes(72),
+    );
+    final v1WireFrame = wire.V1Frame(
+      type: wire.V1Frame_FrameType.PAIRED_KEY_ENCRYPTION,
+      pairedKeyEncryption: pairedEncFrame,
+    );
+    final wireFrame = wire.Frame(
+      version: wire.Frame_Version.V1,
+      v1: v1WireFrame,
+    );
+
+    await sendTransferSetupFrame(wireFrame);
+    print("Inbound $id: Sent encrypted PairedKeyEncryption");
+    _currentState = InboundState.sentConnectionResponse;
+  }
+
+  offline.OsInfo_OsType _platformOsType() {
+    if (Platform.isLinux) return offline.OsInfo_OsType.LINUX;
+    if (Platform.isMacOS || Platform.isIOS) return offline.OsInfo_OsType.APPLE;
+    if (Platform.isWindows) return offline.OsInfo_OsType.WINDOWS;
+    if (Platform.isAndroid) return offline.OsInfo_OsType.ANDROID;
+    return offline.OsInfo_OsType.UNKNOWN_OS_TYPE;
   }
 
   // Handles the encrypted PAIRED_KEY_ENCRYPTION frame from the client
@@ -742,22 +765,27 @@ class InboundNearbyConnection extends NearbyConnection {
     try {
       // Create files and open handles *before* sending ACCEPT
       for (final entry in transferredFiles.entries) {
-        final id = entry.key;
+        final payloadId = entry.key;
         final fileInfo = entry.value;
         try {
           final file = File(fileInfo.destinationPath);
           // Ensure directory exists
           await file.parent.create(recursive: true);
-          // Open file for appending (or writing if new)
-          fileInfo.fileHandle = await file.open(mode: FileMode.writeOnlyAppend);
+          // The destination path has already been uniqued; start with a clean file.
+          fileInfo.fileHandle = await file.open(mode: FileMode.write);
           fileInfo.created = true;
           print(
-            "Inbound $id: Opened file handle for ${fileInfo.destinationPath}",
+            "Inbound $id: Opened file handle for payload $payloadId at "
+            "${fileInfo.destinationPath}",
           );
           // TODO: Initialize and publish progress if needed
         } catch (e, s) {
+          lastError = NearbyIOException(
+            "Failed to create received file ${fileInfo.destinationPath}: $e",
+          );
           print(
-            "Inbound $id: Failed to create/open file ${fileInfo.destinationPath}: $e\n$s",
+            "Inbound $id: Failed to create/open file for payload $payloadId "
+            "at ${fileInfo.destinationPath}: $e\n$s",
           );
           // Clean up already opened files before rejecting
           await _cleanupFailedAccept();
@@ -815,6 +843,9 @@ class InboundNearbyConnection extends NearbyConnection {
     wire.ConnectionResponseFrame_Status reason =
         wire.ConnectionResponseFrame_Status.REJECT,
   }) async {
+    lastError ??= NearbyCancellationException(
+      wireStatusToCancellationReason(reason) ?? CancellationReason.userRejected,
+    );
     print("Inbound $id: Rejecting transfer with reason: $reason");
     final responseFrame = wire.ConnectionResponseFrame(status: reason);
     final v1WireFrame = wire.V1Frame(

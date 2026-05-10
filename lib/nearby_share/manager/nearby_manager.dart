@@ -40,11 +40,12 @@ class NearbyConnectionManager extends ChangeNotifier
   BonsoirBroadcast? _bonsoirBroadcast;
   BonsoirDiscovery? _bonsoirDiscovery;
 
-  final String _endpointId = String.fromCharCodes(generateRandomBytes(4));
+  final String _endpointId = generateEndpointId();
   String? _deviceName;
 
   bool _isBroadcasting = false;
   bool _isDiscovering = false;
+  Future<void> _broadcastingOperation = Future<void>.value();
 
   final Map<String, InboundNearbyConnection> _inboundConnections = {};
   final Map<String, OutboundNearbyConnection> _outboundConnections = {};
@@ -55,6 +56,7 @@ class NearbyConnectionManager extends ChangeNotifier
   final List<NearbyEventsListener> _nearbyListeners = [];
 
   void addNearbyListener(NearbyEventsListener listener) {
+    if (_nearbyListeners.contains(listener)) return;
     _nearbyListeners.add(listener);
     // Notify listener of currently discovered devices
     _discoveredDevices.values
@@ -68,24 +70,41 @@ class NearbyConnectionManager extends ChangeNotifier
 
   // --- Broadcasting ---
   Future<void> startBroadcasting(String deviceName) async {
+    final operation = _broadcastingOperation.then((_) async {
+      await _startBroadcasting(deviceName);
+    });
+    _broadcastingOperation = operation.catchError((_) {});
+    return operation;
+  }
+
+  Future<void> _startBroadcasting(String deviceName) async {
     if (_isBroadcasting) return;
     _deviceName = deviceName;
 
     try {
-      _serverSocket = await ServerSocket.bind(InternetAddress.anyIPv4, 0);
-      _serverSocket!.listen(
+      final serverSocket = await ServerSocket.bind(InternetAddress.anyIPv4, 0);
+      _serverSocket = serverSocket;
+      serverSocket.listen(
         _handleIncomingConnection,
         onError: (e, s) {
-          print("Server socket error: $e\n$s");
-          stopBroadcasting();
+          if (!identical(_serverSocket, serverSocket)) {
+            print("Ignoring stale server socket error: $e");
+            return;
+          }
+          print("Active server socket error: $e\n$s");
+          unawaited(stopBroadcasting());
         },
         onDone: () {
-          print("Server socket closed");
-          stopBroadcasting();
+          if (!identical(_serverSocket, serverSocket)) {
+            print("Stale server socket closed");
+            return;
+          }
+          print("Active server socket closed");
+          unawaited(stopBroadcasting());
         },
       );
 
-      final port = _serverSocket!.port;
+      final port = serverSocket.port;
       print("TCP Listener started on port $port");
 
       final service = BonsoirService(
@@ -106,22 +125,34 @@ class NearbyConnectionManager extends ChangeNotifier
       notifyListeners();
     } catch (e, s) {
       print("Error starting broadcasting: $e\n$s");
-      await stopBroadcasting();
+      await _stopBroadcasting();
       rethrow;
     }
   }
 
   Future<void> stopBroadcasting() async {
-    if (!_isBroadcasting) return;
-    await _bonsoirBroadcast?.stop();
+    final operation = _broadcastingOperation.then((_) async {
+      await _stopBroadcasting();
+    });
+    _broadcastingOperation = operation.catchError((_) {});
+    return operation;
+  }
+
+  Future<void> _stopBroadcasting() async {
+    final broadcast = _bonsoirBroadcast;
+    final serverSocket = _serverSocket;
+    if (!_isBroadcasting && broadcast == null && serverSocket == null) return;
+
     _bonsoirBroadcast = null;
-    await _serverSocket?.close();
     _serverSocket = null;
+    _isBroadcasting = false;
+
+    await broadcast?.stop();
+    await serverSocket?.close();
     await Future.wait(
       _inboundConnections.values.map((conn) => conn.disconnect()),
     );
     _inboundConnections.clear();
-    _isBroadcasting = false;
     print("Stopped broadcasting Nearby Share service");
     notifyListeners();
   }
@@ -234,6 +265,7 @@ class NearbyConnectionManager extends ChangeNotifier
         socket,
         connectionId,
         filePaths,
+        endpointId: _endpointId,
       );
       connection.delegate = this;
       connection.remoteDeviceInfo = device;
@@ -444,15 +476,7 @@ class NearbyConnectionManager extends ChangeNotifier
 
   // --- Helpers ---
   String _generateBonsoirName(String endpointId) {
-    final nameBytes = [
-      0x23,
-      ...utf8.encode(endpointId),
-      0xFC,
-      0x9F,
-      0x5E,
-      0,
-      0,
-    ];
+    final nameBytes = [0x23, ...endpointId.codeUnits, 0xFC, 0x9F, 0x5E, 0, 0];
     return Uint8List.fromList(nameBytes).toUrlSafeBase64();
   }
 
@@ -467,8 +491,13 @@ class NearbyConnectionManager extends ChangeNotifier
   String? _getEndpointIdFromService(BonsoirService service) {
     try {
       final nameData = service.name.fromUrlSafeBase64();
-      if (nameData != null && nameData.length >= 5 && nameData[0] == 0x23) {
-        return String.fromCharCodes(nameData.sublist(1, 5));
+      if (nameData != null &&
+          nameData.length >= 10 &&
+          nameData[0] == 0x23 &&
+          nameData[5] == 0xFC &&
+          nameData[6] == 0x9F &&
+          nameData[7] == 0x5E) {
+        return ascii.decode(nameData.sublist(1, 5));
       }
     } catch (e) {
       print("Error parsing endpoint ID from service name ${service.name}: $e");

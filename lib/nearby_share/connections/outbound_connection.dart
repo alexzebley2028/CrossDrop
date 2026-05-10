@@ -23,7 +23,7 @@ import 'package:path/path.dart' as p; // For path operations
 enum OutboundState {
   initial,
   sentUkeyClientInit,
-  sentUkeyClientFinish, // After sending ClientFinish (waits for encrypted ConnectionResponse ACK)
+  sentUkeyClientFinish, // After sending ClientFinish + plaintext ConnectionResponse
   sentPairedKeyEncryption, // After sending encrypted PairedKeyEncryption
   sentPairedKeyResult, // After sending encrypted PairedKeyResult
   sentIntroduction, // After sending Introduction (waits for ACCEPT/REJECT)
@@ -49,6 +49,7 @@ abstract class OutboundNearbyConnectionDelegate {
 class OutboundNearbyConnection extends NearbyConnection {
   OutboundState _currentState = OutboundState.initial;
   final List<String> _urlsToSend; // List of file paths or a single non-file URL
+  final String _endpointId;
   Uint8List? _ukeyClientFinishMsgData;
   List<OutgoingFileTransfer> _transferQueue = [];
   OutgoingFileTransfer? _currentTransfer;
@@ -58,8 +59,13 @@ class OutboundNearbyConnection extends NearbyConnection {
   bool _cancelled = false;
   int _textPayloadID = 0; // Use int
 
-  OutboundNearbyConnection(super.socket, super.id, List<String> urlsToSend)
-    : _urlsToSend = urlsToSend {
+  OutboundNearbyConnection(
+    super.socket,
+    super.id,
+    List<String> urlsToSend, {
+    required String endpointId,
+  }) : _urlsToSend = urlsToSend,
+       _endpointId = endpointId {
     if (urlsToSend.length == 1 && !File(urlsToSend[0]).existsSync()) {
       // Heuristic for non-file URL
       _textPayloadID = Random().nextInt(0x7FFFFFFF);
@@ -152,7 +158,7 @@ class OutboundNearbyConnection extends NearbyConnection {
   }
 
   @override
-  void processReceivedFrame(Uint8List frameData) {
+  Future<void> processReceivedFrame(Uint8List frameData) async {
     print("Outbound $id: Processing frame in state $_currentState");
     if (_cancelled) {
       print("Outbound $id: Ignoring frame because transfer is cancelled.");
@@ -165,12 +171,12 @@ class OutboundNearbyConnection extends NearbyConnection {
           throw NearbyProtocolException("Received frame in initial state");
         case OutboundState.sentUkeyClientInit:
           final msg = ukey.Ukey2Message.fromBuffer(frameData);
-          _processUkey2ServerInit(msg, frameData);
+          await _processUkey2ServerInit(msg, frameData);
           break;
         case OutboundState.sentUkeyClientFinish:
           // Expecting unencrypted ConnectionResponse ACK before encrypted setup.
           final frame = offline.OfflineFrame.fromBuffer(frameData);
-          _processConnectionResponseAck(frame).catchError(_handleAsyncError);
+          await _processConnectionResponseAck(frame);
           break;
         case OutboundState.sentPairedKeyEncryption:
         case OutboundState.sentPairedKeyResult:
@@ -178,9 +184,7 @@ class OutboundNearbyConnection extends NearbyConnection {
         case OutboundState.sendingFiles:
           // All subsequent frames should be encrypted SecureMessages
           final smsg = sm.SecureMessage.fromBuffer(frameData);
-          decryptAndProcessReceivedSecureMessage(
-            smsg,
-          ).catchError(_handleAsyncError);
+          await decryptAndProcessReceivedSecureMessage(smsg);
           break;
         case OutboundState.disconnected:
           print("Outbound $id: Received frame while disconnected.");
@@ -191,7 +195,11 @@ class OutboundNearbyConnection extends NearbyConnection {
         "Outbound $id: Deserialization error in state $_currentState: $e\n$s",
       );
       lastError = (e is Exception) ? e : Exception(e.toString());
-      if (_currentState == OutboundState.sentUkeyClientInit) {
+      if (e is NearbyUkey2Exception) {
+        return;
+      } else if (e is NearbyUkey2PeerAlertException) {
+        if (!connectionClosed) protocolError();
+      } else if (_currentState == OutboundState.sentUkeyClientInit) {
         sendUkey2Alert(
           ukey.Ukey2Alert_AlertType.BAD_MESSAGE,
         ); // Sends alert and disconnects
@@ -275,15 +283,7 @@ class OutboundNearbyConnection extends NearbyConnection {
     ); // Assuming desktop
 
     final connReq = offline.ConnectionRequestFrame(
-      // TODO: Which method to use for endpointId?
-      /* endpointId: id.substring(
-        0,
-        4,
-      ), // Use first 4 chars of UUID? Swift uses full endpointID... Let's use full */
-      // endpointId: id, // Let's try the full connection ID? No, the MDNS uses 4 bytes.
-      endpointId: String.fromCharCodes(
-        generateRandomBytes(4),
-      ), // Match Swift's generateEndpointID logic maybe? Needs consistency check.
+      endpointId: _endpointId,
       endpointName: endpointName,
       endpointInfo: endpointInfo.serialize(),
       mediums: [offline.ConnectionRequestFrame_Medium.WIFI_LAN],
@@ -346,8 +346,20 @@ class OutboundNearbyConnection extends NearbyConnection {
 
   // --- Private Processing Methods ---
 
-  void _processUkey2ServerInit(ukey.Ukey2Message msg, Uint8List rawMsgData) {
+  Future<void> _processUkey2ServerInit(
+    ukey.Ukey2Message msg,
+    Uint8List rawMsgData,
+  ) async {
+    if (msg.messageType == ukey.Ukey2Message_Type.ALERT) {
+      final alert = msg.hasMessageData()
+          ? ukey.Ukey2Alert.fromBuffer(msg.messageData)
+          : null;
+      throw NearbyUkey2PeerAlertException(
+        alert?.type.name ?? 'missing alert data',
+      );
+    }
     if (msg.messageType != ukey.Ukey2Message_Type.SERVER_INIT) {
+      print("Outbound $id: Expected UKEY2 ServerInit, got ${msg.messageType}");
       sendUkey2Alert(ukey.Ukey2Alert_AlertType.BAD_MESSAGE_TYPE);
       throw NearbyUkey2Exception();
     }
@@ -386,28 +398,51 @@ class OutboundNearbyConnection extends NearbyConnection {
       final serverKeyProto = sm.GenericPublicKey.fromBuffer(
         serverInit.publicKey,
       );
-      finalizeKeyExchange(serverKeyProto)
-          .then((_) {
-            print("Outbound $id: UKEY2 Handshake Complete. PIN: $pinCode");
-            // Send ClientFinish
-            if (_ukeyClientFinishMsgData == null) {
-              throw StateError("ClientFinish message data is null");
-            }
-            sendFrame(_ukeyClientFinishMsgData!);
-            _currentState = OutboundState.sentUkeyClientFinish;
-            print("Outbound $id: Sent UKEY2 ClientFinish");
+      await finalizeKeyExchange(serverKeyProto);
+      print("Outbound $id: UKEY2 Handshake Complete. PIN: $pinCode");
+      // Send ClientFinish
+      if (_ukeyClientFinishMsgData == null) {
+        throw StateError("ClientFinish message data is null");
+      }
+      sendFrame(_ukeyClientFinishMsgData!);
+      print("Outbound $id: Sent UKEY2 ClientFinish");
+      _sendPlaintextConnectionResponse();
+      _currentState = OutboundState.sentUkeyClientFinish;
+      encryptionDone = true;
+      print("Outbound $id: Sent plaintext ConnectionResponse");
 
-            // Notify delegate that connection is established (PIN available)
-            Future.microtask(
-              () => delegate?.outboundConnectionEstablished(this),
-            );
-          })
-          .catchError(_handleAsyncError);
+      // Notify delegate that connection is established (PIN available)
+      Future.microtask(() => delegate?.outboundConnectionEstablished(this));
     } catch (e, s) {
       print("Error processing ServerInit payload: $e\n$s");
       sendUkey2Alert(ukey.Ukey2Alert_AlertType.BAD_PUBLIC_KEY);
       throw NearbyUkey2Exception();
     }
+  }
+
+  void _sendPlaintextConnectionResponse() {
+    final connResp = offline.ConnectionResponseFrame(
+      response: offline.ConnectionResponseFrame_ResponseStatus.ACCEPT,
+      status: 0,
+      osInfo: offline.OsInfo(type: _platformOsType()),
+    );
+    final v1Frame = offline.V1Frame(
+      type: offline.V1Frame_FrameType.CONNECTION_RESPONSE,
+      connectionResponse: connResp,
+    );
+    final offlineFrame = offline.OfflineFrame(
+      version: offline.OfflineFrame_Version.V1,
+      v1: v1Frame,
+    );
+    sendFrame(offlineFrame.writeToBuffer());
+  }
+
+  offline.OsInfo_OsType _platformOsType() {
+    if (Platform.isLinux) return offline.OsInfo_OsType.LINUX;
+    if (Platform.isMacOS || Platform.isIOS) return offline.OsInfo_OsType.APPLE;
+    if (Platform.isWindows) return offline.OsInfo_OsType.WINDOWS;
+    if (Platform.isAndroid) return offline.OsInfo_OsType.ANDROID;
+    return offline.OsInfo_OsType.UNKNOWN_OS_TYPE;
   }
 
   // Process the unencrypted ConnectionResponse ACK from the server.

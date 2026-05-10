@@ -35,6 +35,7 @@ abstract class NearbyConnection {
   bool connectionClosed = false;
   StreamSubscription<Uint8List>? _socketSubscription;
   final Completer<void> _closedCompleter = Completer<void>();
+  Future<void> _frameProcessing = Future<void>.value();
 
   // UKEY2 state
   pc.ECPublicKey? ukeyPublicKey; // PointyCastle keys
@@ -107,9 +108,9 @@ abstract class NearbyConnection {
         _receiveBuffer.removeRange(0, 4 + length);
         // print('Connection $id: Processing frame of length ${frameData.length}. Remaining buffer: ${_receiveBuffer.length}');
         try {
-          processReceivedFrame(frameData);
+          _enqueueReceivedFrame(frameData);
         } catch (e, s) {
-          print('Connection $id: Error processing frame: $e\n$s');
+          print('Connection $id: Error queuing frame: $e\n$s');
           lastError = (e is Exception) ? e : Exception(e.toString());
           _reportError(lastError!);
           protocolError();
@@ -120,6 +121,20 @@ abstract class NearbyConnection {
         break; // Exit the loop, wait for more data
       }
     }
+  }
+
+  void _enqueueReceivedFrame(Uint8List frameData) {
+    _frameProcessing = _frameProcessing.then((_) async {
+      if (connectionClosed) return;
+      try {
+        await processReceivedFrame(frameData);
+      } catch (e, s) {
+        print('Connection $id: Error processing frame: $e\n$s');
+        lastError = (e is Exception) ? e : Exception(e.toString());
+        _reportError(lastError!);
+        protocolError();
+      }
+    });
   }
 
   // Called when an error occurs on the socket
@@ -149,7 +164,7 @@ abstract class NearbyConnection {
   }
 
   // Abstract method to be implemented by subclasses for frame processing logic
-  void processReceivedFrame(Uint8List frameData);
+  Future<void> processReceivedFrame(Uint8List frameData);
 
   // Abstract method for handling decrypted setup frames (Introduction, Response, etc.)
   Future<void> processTransferSetupFrame(wire.Frame frame);
@@ -490,7 +505,7 @@ abstract class NearbyConnection {
 
     // Perform ECDH
     final dhSecretBytes = ecdhPointyCastle(ukeyPrivateKey!, peerKey);
-    final sharedSecret = SecretKey(dhSecretBytes); // Wrap the raw bytes
+    final sharedSecret = await ukey2SharedSecretFromEcdh(dhSecretBytes);
 
     // Derive Auth String and Next Secret using HKDF
     final ukeyInfo = BytesBuilder();

@@ -13,6 +13,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
+NotificationActionCallback? _activeNotificationActionHandler;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -57,13 +59,16 @@ void main() async {
 // Top-level or static handler for notification actions
 void _handleNotificationResponse(String connectionId, bool accepted) {
   print('Handling notification response: $connectionId, Accepted: $accepted');
-  // Access the manager instance (since this is top-level, find a way to get it)
-  // Option 1: Make manager truly global (less ideal)
-  // Option 2: Pass manager instance or use a locator pattern if needed here.
-  // For simplicity with Provider, this function might need to be part of a class
-  // that has access to the context, or we trigger an event that the UI listens to.
-  // Let's assume the manager is accessible globally for this example:
-  NearbyConnectionManager().respondToTransfer(connectionId, accepted);
+  final activeHandler = _activeNotificationActionHandler;
+  if (activeHandler != null) {
+    activeHandler(connectionId, accepted);
+    return;
+  }
+
+  // Fallback for action delivery before the widget tree has registered a handler.
+  unawaited(
+    NearbyConnectionManager().respondToTransfer(connectionId, accepted),
+  );
 }
 
 enum AnimationPhase { idle, fadeIn, visible, fadeOut }
@@ -79,6 +84,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
   AppSystemTray? appSystemTray;
   final TextEditingController _deviceNameController = TextEditingController();
   bool isTextFieldEditing = false;
+  final Map<String, _PendingTransfer> _pendingTransfers = {};
 
   int _currentShapeIndex = 0;
   Timer? _animationTimer;
@@ -90,6 +96,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
   final Duration _fadeOutDuration = const Duration(milliseconds: 1000);
 
   late NearbyConnectionManager _manager;
+  bool _nearbyInitialized = false;
 
   @override
   void initState() {
@@ -103,8 +110,11 @@ class _AppState extends State<App> implements NearbyEventsListener {
     super.didChangeDependencies();
     // Access manager here, after Provider is available
     _manager = context.read<NearbyConnectionManager>();
-    _manager.addNearbyListener(this); // Register as listener
-    _initNearby(); // Initialize Nearby functionalities
+    _activeNotificationActionHandler = _handleNotificationAction;
+    if (_nearbyInitialized) return;
+    _nearbyInitialized = true;
+    _manager.addNearbyListener(this);
+    unawaited(_initNearby());
   }
 
   Future<void> _initNearby() async {
@@ -172,6 +182,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
   void dispose() {
     _deviceNameController.dispose();
     _animationTimer?.cancel();
+    _activeNotificationActionHandler = null;
     _manager.removeNearbyListener(this); // Unregister listener
     // Decide whether to stop broadcasting/discovery on UI dispose.
     // If using system tray, maybe keep it running? For now, let's stop.
@@ -236,11 +247,18 @@ class _AppState extends State<App> implements NearbyEventsListener {
     print(
       "UI Listener: Incoming Transfer Request - ID: ${transfer.id} from ${device.name}",
     );
-    // Show notification for user consent
-    showTransferNotification(
-      transfer.copyWith(id: connectionId),
-      device,
-    ); // Ensure notification uses connectionId
+    final pendingTransfer = transfer.copyWith(id: connectionId);
+    setState(() {
+      _pendingTransfers[connectionId] = _PendingTransfer(
+        metadata: pendingTransfer,
+        device: device,
+      );
+    });
+    unawaited(
+      showTransferNotification(pendingTransfer, device).catchError((e, s) {
+        print("Failed to show transfer notification: $e\n$s");
+      }),
+    );
   }
 
   @override
@@ -248,6 +266,11 @@ class _AppState extends State<App> implements NearbyEventsListener {
     print(
       "UI Listener: Transfer Finished - ID: $connectionId, Success: $success, Error: $error",
     );
+    if (mounted) {
+      setState(() {
+        _pendingTransfers.remove(connectionId);
+      });
+    }
     // Clear the transfer notification
     cancelNotification(connectionId);
     if (!success && error != null && error is! NearbyCancellationException) {
@@ -276,6 +299,27 @@ class _AppState extends State<App> implements NearbyEventsListener {
   void onOutgoingPinAvailable(String connectionId, String pin) {
     print("UI Listener: Outgoing PIN - ConnID: $connectionId, PIN: $pin");
     // TODO: Display PIN to user
+  }
+
+  Future<void> _respondToPendingTransfer(
+    String connectionId,
+    bool accept,
+  ) async {
+    if (mounted) {
+      setState(() {
+        _pendingTransfers.remove(connectionId);
+      });
+    }
+    await _manager.respondToTransfer(connectionId, accept);
+    await cancelNotification(connectionId);
+  }
+
+  void _handleNotificationAction(String connectionId, bool accepted) {
+    unawaited(
+      _respondToPendingTransfer(connectionId, accepted).catchError((e, s) {
+        print("Failed to handle notification action for $connectionId: $e\n$s");
+      }),
+    );
   }
 
   @override
@@ -368,10 +412,92 @@ class _AppState extends State<App> implements NearbyEventsListener {
                     ),
                 ],
               ),
+              if (_pendingTransfers.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                for (final entry in _pendingTransfers.entries)
+                  _TransferRequestPanel(
+                    transfer: entry.value.metadata,
+                    device: entry.value.device,
+                    onAccept: () => _respondToPendingTransfer(entry.key, true),
+                    onDecline: () =>
+                        _respondToPendingTransfer(entry.key, false),
+                  ),
+              ],
               // TODO: Add UI for discovered devices and initiating transfers
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PendingTransfer {
+  final TransferMetadata metadata;
+  final RemoteDeviceInfo device;
+
+  const _PendingTransfer({required this.metadata, required this.device});
+}
+
+class _TransferRequestPanel extends StatelessWidget {
+  final TransferMetadata transfer;
+  final RemoteDeviceInfo device;
+  final Future<void> Function() onAccept;
+  final Future<void> Function() onDecline;
+
+  const _TransferRequestPanel({
+    required this.transfer,
+    required this.device,
+    required this.onAccept,
+    required this.onDecline,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final detail = transfer.textDescription != null
+        ? transfer.textDescription!
+        : transfer.files.length == 1
+        ? transfer.files.first.name
+        : '${transfer.files.length} files';
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.dividerColor),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${device.name} wants to share',
+            style: theme.textTheme.titleSmall,
+          ),
+          const SizedBox(height: 4),
+          Text(detail, maxLines: 2, overflow: TextOverflow.ellipsis),
+          if (transfer.pinCode != null) ...[
+            const SizedBox(height: 4),
+            Text('PIN ${transfer.pinCode}'),
+          ],
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => unawaited(onDecline()),
+                child: const Text('Decline'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () => unawaited(onAccept()),
+                child: const Text('Accept'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

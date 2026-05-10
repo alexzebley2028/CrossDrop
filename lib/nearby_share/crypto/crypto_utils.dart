@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+
 import 'package:cryptography/cryptography.dart';
 import 'package:pointycastle/export.dart' as pc;
 // Removed redundant pointycastle import
@@ -116,6 +117,12 @@ Uint8List ecdhPointyCastle(
   return _bigIntToBytes(sharedSecretBigInt, 32);
 }
 
+/// Converts a raw P-256 ECDH X coordinate into the UKEY2 shared secret input.
+Future<SecretKey> ukey2SharedSecretFromEcdh(List<int> ecdhSecret) async {
+  final digest = await Sha256().hash(ecdhSecret);
+  return SecretKey(digest.bytes);
+}
+
 /// Converts BigInt to a fixed-length byte array (big-endian).
 Uint8List _bigIntToBytes(BigInt number, int size) {
   if (number < BigInt.zero) {
@@ -135,6 +142,24 @@ Uint8List _bigIntToBytes(BigInt number, int size) {
   return byteList;
 }
 
+Uint8List _bigIntToSignedBytes(BigInt number) {
+  if (number < BigInt.zero) {
+    throw ArgumentError("Negative BigInt to byte conversion not handled here");
+  }
+  var hex = number.toRadixString(16);
+  if (hex.length % 2 != 0) hex = '0$hex';
+  final bytes = hex.isEmpty
+      ? <int>[0]
+      : List<int>.generate(
+          hex.length ~/ 2,
+          (i) => int.parse(hex.substring(i * 2, i * 2 + 2), radix: 16),
+        );
+  if (bytes.isNotEmpty && (bytes.first & 0x80) != 0) {
+    return Uint8List.fromList([0, ...bytes]);
+  }
+  return Uint8List.fromList(bytes);
+}
+
 /// Serializes a PointyCastle ECPublicKey to the protobuf format.
 Uint8List serializeP256PublicKeyPointyCastle(pc.ECPublicKey publicKey) {
   final q = publicKey.Q;
@@ -146,8 +171,8 @@ Uint8List serializeP256PublicKeyPointyCastle(pc.ECPublicKey publicKey) {
   if (xBigInt == null || yBigInt == null) {
     throw ArgumentError("Failed to convert public key coordinates to BigInt");
   }
-  final xBytes = _bigIntToBytes(xBigInt, 32);
-  final yBytes = _bigIntToBytes(yBigInt, 32);
+  final xBytes = _bigIntToSignedBytes(xBigInt);
+  final yBytes = _bigIntToSignedBytes(yBigInt);
   final protoKey = sm.EcP256PublicKey(x: xBytes, y: yBytes);
   return protoKey.writeToBuffer();
 }
@@ -185,8 +210,8 @@ sm.GenericPublicKey genericPublicKeyFromPointyCastle(pc.ECPublicKey publicKey) {
   if (xBigInt == null || yBigInt == null) {
     throw ArgumentError("Failed to convert public key coordinates to BigInt");
   }
-  final xBytes = _bigIntToBytes(xBigInt, 32);
-  final yBytes = _bigIntToBytes(yBigInt, 32);
+  final xBytes = _bigIntToSignedBytes(xBigInt);
+  final yBytes = _bigIntToSignedBytes(yBigInt);
   final ecKey = sm.EcP256PublicKey(x: xBytes, y: yBytes);
   return sm.GenericPublicKey(
     type: sm.PublicKeyType.EC_P256,
