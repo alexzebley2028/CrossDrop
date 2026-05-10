@@ -187,6 +187,13 @@ class _AppState extends State<App> implements NearbyEventsListener {
   void onDeviceFound(RemoteDeviceInfo device) {
     print("UI Listener: Device Found - ${device.name} (${device.id})");
     setState(() {});
+    if (device.qrMatched &&
+        _outgoingFilePaths.isNotEmpty &&
+        _outgoingConnectionId == null &&
+        _outgoingTargetDeviceId == null) {
+      print("UI Listener: QR-matched device ${device.id}; starting transfer");
+      unawaited(_sendSelectedFilesToDevice(device));
+    }
   }
 
   @override
@@ -439,6 +446,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
                           error: _outgoingError,
                           devices: manager.discoveredDevices,
                           isDiscovering: manager.isDiscovering,
+                          qrCodeUrl: manager.discoveryQrCodeUrl,
                           busy:
                               _outgoingConnectionId != null ||
                               _outgoingTargetDeviceId != null,

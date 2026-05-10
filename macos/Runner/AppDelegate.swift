@@ -12,10 +12,10 @@ class AppDelegate: FlutterAppDelegate {
 
     NSApp.servicesProvider = self
     NSUpdateDynamicServices()
+  }
 
-    guard let controller = NSApplication.shared.windows.compactMap({
-      $0.contentViewController as? FlutterViewController
-    }).first else {
+  func registerFlutterChannels(controller: FlutterViewController) {
+    if fileIntentChannel != nil {
       return
     }
 

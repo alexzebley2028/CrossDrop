@@ -1,6 +1,7 @@
 import 'package:crossdrop/nearby_share/api/models.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
+import 'package:qr_flutter/qr_flutter.dart';
 
 class OutgoingSendButton extends StatelessWidget {
   final bool isPickingOutgoingFiles;
@@ -31,6 +32,7 @@ class OutgoingSendPanel extends StatelessWidget {
   final Exception? error;
   final List<RemoteDeviceInfo> devices;
   final bool isDiscovering;
+  final String? qrCodeUrl;
   final bool busy;
   final String? selectedDeviceId;
   final RemoteDeviceInfo? selectedDevice;
@@ -46,6 +48,7 @@ class OutgoingSendPanel extends StatelessWidget {
     required this.error,
     required this.devices,
     required this.isDiscovering,
+    required this.qrCodeUrl,
     required this.busy,
     required this.selectedDeviceId,
     required this.selectedDevice,
@@ -121,21 +124,54 @@ class OutgoingSendPanel extends StatelessWidget {
           ],
           const SizedBox(height: 12),
           if (visibleDevices.isEmpty)
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: isDiscovering
-                      ? const CircularProgressIndicator(strokeWidth: 2)
-                      : null,
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: isDiscovering
+                          ? const CircularProgressIndicator(strokeWidth: 2)
+                          : null,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isDiscovering
+                          ? 'Scanning for devices...'
+                          : 'No nearby devices found',
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  isDiscovering
-                      ? 'Scanning for devices...'
-                      : 'No nearby devices found',
-                ),
+                if (isDiscovering && qrCodeUrl != null && !busy) ...[
+                  const SizedBox(height: 12),
+                  Text('Scan QR code from Quick Share'),
+                  const SizedBox(height: 8),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: QrImageView(
+                        data: qrCodeUrl!,
+                        version: QrVersions.auto,
+                        size: 148,
+                        backgroundColor: Colors.white,
+                        eyeStyle: const QrEyeStyle(
+                          eyeShape: QrEyeShape.square,
+                          color: Colors.black,
+                        ),
+                        dataModuleStyle: const QrDataModuleStyle(
+                          dataModuleShape: QrDataModuleShape.square,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             )
           else

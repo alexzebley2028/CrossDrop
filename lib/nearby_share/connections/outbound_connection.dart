@@ -13,6 +13,7 @@ import 'package:crossdrop/nearby_share/protobuf/ukey.pb.dart' as ukey;
 import 'package:crossdrop/nearby_share/protobuf/wire_format.pb.dart' as wire;
 import 'package:crossdrop/nearby_share/utils/data_extension.dart';
 import 'package:crossdrop/nearby_share/crypto/crypto_utils.dart';
+import 'package:crossdrop/nearby_share/crypto/quick_share_qr.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:mime/mime.dart'; // For MIME type lookup
@@ -49,6 +50,7 @@ class OutboundNearbyConnection extends NearbyConnection {
   OutboundState _currentState = OutboundState.initial;
   final List<String> _urlsToSend; // List of file paths or a single non-file URL
   final String _endpointId;
+  final QuickShareQrCode? _quickShareQrCode;
   Uint8List? _ukeyClientFinishMsgData;
   List<OutgoingFileTransfer> _transferQueue = [];
   OutgoingFileTransfer? _currentTransfer;
@@ -65,8 +67,10 @@ class OutboundNearbyConnection extends NearbyConnection {
     super.id,
     List<String> urlsToSend, {
     required String endpointId,
+    QuickShareQrCode? quickShareQrCode,
   }) : _urlsToSend = urlsToSend,
-       _endpointId = endpointId {
+       _endpointId = endpointId,
+       _quickShareQrCode = quickShareQrCode {
     if (urlsToSend.length == 1 && !File(urlsToSend[0]).existsSync()) {
       // Heuristic for non-file URL
       _textPayloadID = generatePositivePayloadId();
@@ -481,9 +485,14 @@ class OutboundNearbyConnection extends NearbyConnection {
   }
 
   Future<void> _sendPairedKeyEncryption() async {
+    final authString = authStringBytes;
+    final qrCodeHandshakeData = _quickShareQrCode != null && authString != null
+        ? _quickShareQrCode.qrCodeHandshakeData(authString)
+        : null;
     final pairedEncFrame = wire.PairedKeyEncryptionFrame(
       secretIdHash: generateRandomBytes(6),
       signedData: generateRandomBytes(72), // Matching Swift size
+      qrCodeHandshakeData: qrCodeHandshakeData,
     );
     final v1WireFrame = wire.V1Frame(
       type: wire.V1Frame_FrameType.PAIRED_KEY_ENCRYPTION,

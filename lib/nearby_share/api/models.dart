@@ -47,6 +47,7 @@ class RemoteDeviceInfo {
   final String id; // Endpoint ID
   String? ipAddress; // Resolved IP address
   int? port; // Resolved port
+  final bool qrMatched;
 
   RemoteDeviceInfo({
     required this.name,
@@ -54,6 +55,7 @@ class RemoteDeviceInfo {
     required this.id,
     this.ipAddress, // Make optional initially
     this.port, // Make optional initially
+    this.qrMatched = false,
   });
 
   // Update factory or create a new method to include resolved info
@@ -69,6 +71,7 @@ class RemoteDeviceInfo {
       id: id,
       ipAddress: ip,
       port: port,
+      qrMatched: info.qrMatched,
     );
   }
 
@@ -79,6 +82,7 @@ class RemoteDeviceInfo {
     String? id,
     String? ipAddress,
     int? port,
+    bool? qrMatched,
   }) {
     return RemoteDeviceInfo(
       name: name ?? this.name,
@@ -86,6 +90,7 @@ class RemoteDeviceInfo {
       id: id ?? this.id,
       ipAddress: ipAddress ?? this.ipAddress,
       port: port ?? this.port,
+      qrMatched: qrMatched ?? this.qrMatched,
     );
   }
 
@@ -125,22 +130,60 @@ class TransferMetadata {
 class EndpointInfo {
   final String name;
   final DeviceType deviceType;
+  final bool visible;
+  final Map<int, Uint8List> records;
+  final bool qrMatched;
 
-  EndpointInfo({required this.name, required this.deviceType});
+  EndpointInfo({
+    required this.name,
+    required this.deviceType,
+    this.visible = true,
+    this.records = const {},
+    this.qrMatched = false,
+  });
 
   factory EndpointInfo.deserialize(Uint8List data) {
-    if (data.length < 18) {
-      throw ArgumentError("Endpoint info too short (< 18 bytes)");
+    if (data.length < 17) {
+      throw ArgumentError("Endpoint info too short (< 17 bytes)");
     }
-    final deviceNameLength = data[17];
-    if (data.length < deviceNameLength + 18) {
-      throw ArgumentError("Endpoint info too short for device name");
-    }
-    final deviceName = utf8.decode(data.sublist(18, 18 + deviceNameLength));
+    final flags = data[0];
+    final visible = ((flags >> 4) & 1) == 0;
     final rawDeviceType = (data[0] >> 1) & 7;
+    var offset = 17;
+    var deviceName = '';
+
+    if (visible) {
+      if (data.length < 18) {
+        throw ArgumentError("Endpoint info too short for visible device name");
+      }
+      final deviceNameLength = data[offset];
+      offset += 1;
+      if (data.length < offset + deviceNameLength) {
+        throw ArgumentError("Endpoint info too short for device name");
+      }
+      deviceName = utf8.decode(data.sublist(offset, offset + deviceNameLength));
+      offset += deviceNameLength;
+    }
+
+    final records = <int, Uint8List>{};
+    while (offset + 2 <= data.length) {
+      final recordType = data[offset];
+      final recordLength = data[offset + 1];
+      offset += 2;
+      if (offset + recordLength > data.length) {
+        throw ArgumentError("Endpoint info record length exceeds data");
+      }
+      records[recordType] = Uint8List.fromList(
+        data.sublist(offset, offset + recordLength),
+      );
+      offset += recordLength;
+    }
+
     return EndpointInfo(
       name: deviceName,
       deviceType: DeviceType.fromRawValue(rawDeviceType),
+      visible: visible,
+      records: records,
     );
   }
 

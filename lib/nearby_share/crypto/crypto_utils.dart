@@ -142,6 +142,11 @@ Uint8List _bigIntToBytes(BigInt number, int size) {
   return byteList;
 }
 
+/// Converts a positive BigInt into fixed-width unsigned big-endian bytes.
+Uint8List bigIntToFixedUnsignedBytes(BigInt number, int size) {
+  return _bigIntToBytes(number, size);
+}
+
 Uint8List _bigIntToSignedBytes(BigInt number) {
   if (number < BigInt.zero) {
     throw ArgumentError("Negative BigInt to byte conversion not handled here");
@@ -229,4 +234,17 @@ pc.ECPublicKey genericPublicKeyToPointyCastle(sm.GenericPublicKey protoKey) {
   final y = _bigIntParseBytes(protoKey.ecP256PublicKey.y);
   final Q = _p256Domain.curve.createPoint(x, y);
   return pc.ECPublicKey(Q, _p256Domain);
+}
+
+/// Signs a message with P-256 ECDSA/SHA-256 and returns raw r||s bytes.
+Uint8List signP256Sha256Raw(pc.ECPrivateKey privateKey, List<int> message) {
+  final signer = pc.Signer('SHA-256/DET-ECDSA') as pc.ECDSASigner;
+  signer.init(true, pc.PrivateKeyParameter<pc.ECPrivateKey>(privateKey));
+  final signature =
+      signer.generateSignature(Uint8List.fromList(message)) as pc.ECSignature;
+
+  return Uint8List.fromList([
+    ..._bigIntToBytes(signature.r, 32),
+    ..._bigIntToBytes(signature.s, 32),
+  ]);
 }

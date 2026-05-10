@@ -6,6 +6,8 @@ import 'package:bonsoir/bonsoir.dart';
 import 'package:crossdrop/nearby_share/api/models.dart';
 import 'package:crossdrop/nearby_share/connections/inbound_connection.dart';
 import 'package:crossdrop/nearby_share/connections/outbound_connection.dart';
+import 'package:crossdrop/nearby_share/crypto/quick_share_qr.dart';
+import 'package:crossdrop/nearby_share/platform/fast_init_advertiser.dart';
 import 'package:crossdrop/nearby_share/utils/data_extension.dart';
 import 'package:flutter/foundation.dart'; // For ChangeNotifier
 import 'package:uuid/uuid.dart';
@@ -39,6 +41,7 @@ class NearbyConnectionManager extends ChangeNotifier
   ServerSocket? _serverSocket;
   BonsoirBroadcast? _bonsoirBroadcast;
   BonsoirDiscovery? _bonsoirDiscovery;
+  final FastInitAdvertiser _fastInitAdvertiser = FastInitAdvertiser();
 
   final String _endpointId = generateEndpointId();
   String? _deviceName;
@@ -46,14 +49,18 @@ class NearbyConnectionManager extends ChangeNotifier
   bool _isBroadcasting = false;
   bool _isDiscovering = false;
   Future<void> _broadcastingOperation = Future<void>.value();
+  QuickShareQrCode? _discoveryQrCode;
 
   final Map<String, InboundNearbyConnection> _inboundConnections = {};
   final Map<String, OutboundNearbyConnection> _outboundConnections = {};
   // Store RemoteDeviceInfo directly, updated with IP/port on resolution
   final Map<String, RemoteDeviceInfo> _discoveredDevices = {};
+  final Map<String, Timer> _deviceLossTimers = {};
 
   // Renamed listener management methods
   final List<NearbyEventsListener> _nearbyListeners = [];
+
+  static const Duration _deviceLostDebounce = Duration(seconds: 5);
 
   void addNearbyListener(NearbyEventsListener listener) {
     if (_nearbyListeners.contains(listener)) return;
@@ -162,63 +169,78 @@ class NearbyConnectionManager extends ChangeNotifier
   // --- Discovery ---
   Future<void> startDiscovery() async {
     if (_isDiscovering) return;
+    _cancelDeviceLossTimers();
     _discoveredDevices.clear(); // Clear previous results on start
+    _discoveryQrCode = QuickShareQrCode.generate();
+    try {
+      await _fastInitAdvertiser.start();
 
-    _bonsoirDiscovery = BonsoirDiscovery(type: '_FC9F5ED42C8A._tcp');
-    await _bonsoirDiscovery!.initialize();
+      _bonsoirDiscovery = BonsoirDiscovery(type: '_FC9F5ED42C8A._tcp');
+      await _bonsoirDiscovery!.initialize();
 
-    _bonsoirDiscovery!.eventStream!.listen(
-      (event) {
-        try {
-          if (event is BonsoirDiscoveryServiceFoundEvent) {
-            final service = event.service;
-            if (service.host == null) {
-              print("Service ${service.name} found, resolving...");
-              unawaited(
-                service.resolve(_bonsoirDiscovery!.serviceResolver).catchError((
-                  Object e,
-                  StackTrace s,
-                ) {
-                  print("Error resolving service ${service.name}: $e\n$s");
-                }),
-              );
-            } else {
-              _handleDiscoveredOrResolvedService(service);
+      _bonsoirDiscovery!.eventStream!.listen(
+        (event) {
+          try {
+            if (event is BonsoirDiscoveryServiceFoundEvent) {
+              final service = event.service;
+              if (service.host == null) {
+                print("Service ${service.name} found, resolving...");
+                unawaited(
+                  service
+                      .resolve(_bonsoirDiscovery!.serviceResolver)
+                      .catchError((Object e, StackTrace s) {
+                        print(
+                          "Error resolving service ${service.name}: $e\n$s",
+                        );
+                      }),
+                );
+              } else {
+                unawaited(_handleDiscoveredOrResolvedService(service));
+              }
+            } else if (event is BonsoirDiscoveryServiceResolvedEvent) {
+              unawaited(_handleDiscoveredOrResolvedService(event.service));
+            } else if (event is BonsoirDiscoveryServiceUpdatedEvent) {
+              unawaited(_handleDiscoveredOrResolvedService(event.service));
+            } else if (event is BonsoirDiscoveryServiceLostEvent) {
+              _handleLostService(event.service);
             }
-          } else if (event is BonsoirDiscoveryServiceResolvedEvent) {
-            _handleDiscoveredOrResolvedService(event.service);
-          } else if (event is BonsoirDiscoveryServiceUpdatedEvent) {
-            _handleDiscoveredOrResolvedService(event.service);
-          } else if (event is BonsoirDiscoveryServiceLostEvent) {
-            _handleLostService(event.service);
+          } catch (e, s) {
+            print("Error handling discovery event $event: $e\n$s");
           }
-        } catch (e, s) {
-          print("Error handling discovery event $event: $e\n$s");
-        }
-      },
-      onError: (e, s) {
-        print("Discovery stream error: $e\n$s");
-        stopDiscovery(); // Stop discovery on stream error
-      },
-    );
+        },
+        onError: (e, s) {
+          print("Discovery stream error: $e\n$s");
+          stopDiscovery(); // Stop discovery on stream error
+        },
+      );
 
-    await _bonsoirDiscovery!.start();
-    _isDiscovering = true;
-    print("Started Nearby Share discovery");
-    notifyListeners();
+      await _bonsoirDiscovery!.start();
+      _isDiscovering = true;
+      print("Started Nearby Share discovery");
+      notifyListeners();
+    } catch (_) {
+      await _fastInitAdvertiser.stop();
+      _bonsoirDiscovery = null;
+      _discoveryQrCode = null;
+      rethrow;
+    }
   }
 
   Future<void> stopDiscovery() async {
     if (!_isDiscovering) return;
+    await _fastInitAdvertiser.stop();
     await _bonsoirDiscovery?.stop();
     _bonsoirDiscovery = null;
+    _cancelDeviceLossTimers();
     _discoveredDevices.clear();
+    _discoveryQrCode = null;
     _isDiscovering = false;
     print("Stopped Nearby Share discovery");
     notifyListeners();
   }
 
   bool get isDiscovering => _isDiscovering;
+  String? get discoveryQrCodeUrl => _discoveryQrCode?.url;
   List<RemoteDeviceInfo> get discoveredDevices =>
       _discoveredDevices.values.where((d) => d.isResolved).toList();
 
@@ -266,6 +288,7 @@ class NearbyConnectionManager extends ChangeNotifier
         connectionId,
         filePaths,
         endpointId: _endpointId,
+        quickShareQrCode: _discoveryQrCode,
       );
       connection.delegate = this;
       connection.remoteDeviceInfo = device;
@@ -319,9 +342,12 @@ class NearbyConnectionManager extends ChangeNotifier
   }
 
   // Combined handler for found and resolved services
-  void _handleDiscoveredOrResolvedService(BonsoirService service) {
+  Future<void> _handleDiscoveredOrResolvedService(
+    BonsoirService service,
+  ) async {
     final endpointId = _getEndpointIdFromService(service);
     if (endpointId == null || endpointId == _endpointId) return;
+    _deviceLossTimers.remove(endpointId)?.cancel();
 
     final txt = service.attributes;
     final ip = service.host; // Use host from ResolvedBonsoirService
@@ -342,15 +368,52 @@ class NearbyConnectionManager extends ChangeNotifier
       print("Ignoring service ${service.name}: failed to decode 'n' attribute");
       return;
     }
-    if (endpointInfoBytes.length < 18) {
-      print(
-        "Ignoring service ${service.name}: endpoint info too short (${endpointInfoBytes.length} bytes)",
-      );
-      return;
-    }
-
     try {
-      final endpointInfo = EndpointInfo.deserialize(endpointInfoBytes);
+      var endpointInfo = EndpointInfo.deserialize(endpointInfoBytes);
+      var qrMatched = false;
+      final qrCode = _discoveryQrCode;
+      final qrRecord = endpointInfo.records[1];
+      if (qrRecord != null && qrCode != null) {
+        final keychain = await qrCode.deriveHiddenKeychain();
+        if (listEquals(qrRecord, keychain.advertisingToken)) {
+          qrMatched = true;
+          print(
+            "Service ${service.name} matched QR advertising token for $endpointId",
+          );
+        } else if (!endpointInfo.visible && qrRecord.length > 28) {
+          final hiddenNameBytes = await keychain.decryptQrCodeRecord(qrRecord);
+          endpointInfo = EndpointInfo(
+            name: utf8.decode(hiddenNameBytes),
+            deviceType: endpointInfo.deviceType,
+            visible: false,
+            records: endpointInfo.records,
+          );
+          qrMatched = true;
+          print(
+            "Service ${service.name} matched encrypted QR record for $endpointId",
+          );
+        } else if (!endpointInfo.visible) {
+          print(
+            "Ignoring hidden service ${service.name}: QR record did not match current QR key (${qrRecord.length} bytes)",
+          );
+          return;
+        }
+      }
+
+      if (!endpointInfo.visible) {
+        if (qrCode == null) {
+          print(
+            "Ignoring hidden service ${service.name}: discovery has no QR context",
+          );
+          return;
+        }
+        if (qrRecord == null) {
+          print(
+            "Ignoring hidden service ${service.name}: missing QR record; available records: ${endpointInfo.records.keys.join(', ')}",
+          );
+          return;
+        }
+      }
       final existingDevice = _discoveredDevices[endpointId];
 
       // Create or update device info with resolved details
@@ -360,6 +423,7 @@ class NearbyConnectionManager extends ChangeNotifier
         id: endpointId,
         ipAddress: ip, // Store resolved IP
         port: port, // Store resolved port
+        qrMatched: qrMatched,
       );
 
       bool needsNotify = false;
@@ -370,6 +434,9 @@ class NearbyConnectionManager extends ChangeNotifier
         _discoveredDevices[endpointId] = newDeviceInfo;
         needsNotify = true;
       } else if (existingDevice.name != newDeviceInfo.name ||
+          existingDevice.ipAddress != newDeviceInfo.ipAddress ||
+          existingDevice.port != newDeviceInfo.port ||
+          existingDevice.qrMatched != newDeviceInfo.qrMatched ||
           !existingDevice.isResolved) {
         // Update if name changed or if it wasn't resolved before
         print(
@@ -392,15 +459,27 @@ class NearbyConnectionManager extends ChangeNotifier
 
   void _handleLostService(BonsoirService service) {
     final endpointId = _getEndpointIdFromService(service);
-    if (endpointId != null) {
-      if (_discoveredDevices.remove(endpointId) != null) {
-        print("Device Lost: $endpointId");
-        for (var l in _nearbyListeners) {
-          l.onDeviceLost(endpointId);
+    if (endpointId != null && _discoveredDevices.containsKey(endpointId)) {
+      _deviceLossTimers[endpointId]?.cancel();
+      print("Device Lost pending: $endpointId");
+      _deviceLossTimers[endpointId] = Timer(_deviceLostDebounce, () {
+        _deviceLossTimers.remove(endpointId);
+        if (_discoveredDevices.remove(endpointId) != null) {
+          print("Device Lost: $endpointId");
+          for (var l in _nearbyListeners) {
+            l.onDeviceLost(endpointId);
+          }
+          notifyListeners();
         }
-        notifyListeners();
-      }
+      });
     }
+  }
+
+  void _cancelDeviceLossTimers() {
+    for (final timer in _deviceLossTimers.values) {
+      timer.cancel();
+    }
+    _deviceLossTimers.clear();
   }
 
   // --- Delegate Implementations ---

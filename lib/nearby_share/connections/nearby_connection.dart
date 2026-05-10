@@ -55,6 +55,7 @@ abstract class NearbyConnection {
 
   String? _pinCode;
   String? get pinCode => _pinCode;
+  Uint8List? authStringBytes;
 
   NearbyConnection(this._socket, this.id) {
     print(
@@ -570,6 +571,7 @@ abstract class NearbyConnection {
       outputLength: 32,
     );
 
+    authStringBytes = Uint8List.fromList(await authStringKey.extractBytes());
     _pinCode = await derivePinCode(authStringKey);
     print("Derived PIN Code: $_pinCode");
 
