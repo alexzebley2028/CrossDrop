@@ -8,9 +8,6 @@ CrossDrop is based on [NearDrop](https://github.com/grishka/NearDrop), a Swift i
 > [!WARNING]
 > **⚠️ This is a work in progress. It is not yet feature-complete, and it is not yet stable. It is not yet ready for use.**
 
-> [!NOTE]
-> The current continuation state is now on `main`. The previous `dev`, `dev2`, and `dev3` branches are experimental snapshots.
-
 [Protocol documentation](https://github.com/grishka/NearDrop/blob/master/PROTOCOL.md) is available in the NearDrop repository.
 
 The app lives in your menu bar and saves files to your downloads folder.
