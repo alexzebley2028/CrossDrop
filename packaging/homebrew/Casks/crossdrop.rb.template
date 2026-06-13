@@ -1,0 +1,18 @@
+cask "crossdrop" do
+  version "1.0.0"
+  sha256 "REPLACE_WITH_SHA256"
+
+  url "https://github.com/Medformatik/CrossDrop/releases/download/v#{version}/CrossDrop-#{version}-macos-universal.zip"
+  name "CrossDrop"
+  desc "Quick Share implementation for desktop platforms"
+  homepage "https://github.com/Medformatik/CrossDrop"
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  depends_on macos: ">= :catalina"
+
+  app "CrossDrop.app"
+end
