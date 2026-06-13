@@ -1,6 +1,7 @@
 name: crossdrop
-description: "Android Nearby Share implementation for Flutter"
+description: "Quick Share (Nearby Share) implementation in Flutter for macOS, iOS, and Linux."
 publish_to: "none"
+repository: "https://github.com/Medformatik/CrossDrop"
 
 version: 1.0.0+1
 
@@ -8,29 +9,31 @@ environment:
   sdk: ^3.11.5
 
 dependencies:
-  bonsoir: ^6.1.0
+  bonsoir: ^7.1.1
   cryptography: ^2.9.0
   device_info_plus: ^13.1.0
   file_selector: ^1.1.0
   fixnum: ^1.1.1
   flutter:
     sdk: flutter
-  flutter_local_notifications: ^21.0.0
+  flutter_local_notifications: ^22.0.0
+  logging: ^1.3.0
   mime: ^2.0.0
   path: ^1.9.1
   path_provider: ^2.1.5
-  permission_handler: ^12.0.1
+  permission_handler: ^12.0.3
   pointycastle: ^4.0.0
   protobuf: ^6.0.0
   provider: ^6.1.5+1
   qr_flutter: ^4.1.0
-  screen_retriever: ^0.2.0
+  screen_retriever: ^0.2.1
   shared_preferences: ^2.5.5
   system_tray: ^2.0.3
   url_launcher: ^6.3.2
   uuid: ^4.5.3
   window_manager: ^0.5.1
 
+# system_tray 2.0.3 pins uuid ^3.0.6; override forces the app-wide uuid ^4.5.3.
 dependency_overrides:
   uuid: ^4.5.3
 
@@ -46,17 +49,14 @@ flutter:
     - assets/sf_symbols/
     - assets/icons/
 
+# Generates iOS and macOS icon sets from a single 1024x1024 source image.
+# Run after changing the source: dart run flutter_launcher_icons
+# (Android/web/Windows are not targeted; Linux uses the same source via the
+# AppImage packaging + .desktop file, since this tool has no Linux support.)
 flutter_launcher_icons:
-  android: false
   ios: true
   remove_alpha_ios: true
   image_path: "assets/icons/app_icon.png"
-  web:
-    generate: false
-  windows:
-    generate: true
-    icon_size: 128 # min:48, max:256, default: 48
-    image_path: "assets/icons/app_icon.png"
   macos:
     generate: true
     image_path: "assets/icons/app_icon.png"
