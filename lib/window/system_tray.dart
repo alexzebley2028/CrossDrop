@@ -19,7 +19,13 @@ class AppSystemTray {
     final path = Platform.isWindows
         ? 'assets/icons/system_tray_icon.ico'
         : 'assets/icons/system_tray_icon.png';
-    await _systemTray.initSystemTray(iconPath: path, toolTip: 'CrossDrop');
+    await _systemTray.initSystemTray(
+      iconPath: path,
+      toolTip: 'CrossDrop',
+      // On macOS, mark the icon as a template image so the menu bar tints it
+      // automatically: white on a dark menu bar, black on a light one.
+      isTemplate: Platform.isMacOS,
+    );
 
     // handle system tray event
     _systemTray.registerSystemTrayEventHandler((eventName) {
