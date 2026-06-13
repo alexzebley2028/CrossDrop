@@ -16,6 +16,9 @@ import 'package:cryptography/cryptography.dart';
 import 'package:path_provider/path_provider.dart'; // For downloads directory
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart'; // For path manipulation
+import 'package:logging/logging.dart';
+
+final Logger _log = Logger('inbound_connection');
 
 enum InboundState {
   initial,
@@ -73,7 +76,7 @@ class InboundNearbyConnection extends NearbyConnection {
     if (_currentState != InboundState.disconnected) {
       _currentState = InboundState.disconnected;
       _deletePartiallyReceivedFiles().catchError((e, s) {
-        print("Error deleting partially received files for $id: $e\n$s");
+        _log.severe("Error deleting partially received files for $id: $e\n$s");
       });
       // Use WidgetsBinding.instance.addPostFrameCallback or ensure delegate call is safe
       Future.microtask(() => delegate?.connectionTerminated(this, lastError));
@@ -82,7 +85,7 @@ class InboundNearbyConnection extends NearbyConnection {
 
   @override
   Future<void> processReceivedFrame(Uint8List frameData) async {
-    print("Inbound $id: Processing frame in state $_currentState");
+    _log.info("Inbound $id: Processing frame in state $_currentState");
     try {
       switch (_currentState) {
         case InboundState.initial:
@@ -116,11 +119,11 @@ class InboundNearbyConnection extends NearbyConnection {
           await decryptAndProcessReceivedSecureMessage(smsg);
           break;
         case InboundState.disconnected:
-          print("Inbound $id: Received frame while disconnected.");
+          _log.info("Inbound $id: Received frame while disconnected.");
           break;
       }
     } catch (e, s) {
-      print(
+      _log.info(
         "Inbound $id: Deserialization error in state $_currentState: $e\n$s",
       );
       lastError = (e is Exception) ? e : Exception(e.toString());
@@ -143,7 +146,7 @@ class InboundNearbyConnection extends NearbyConnection {
   Future<void> processTransferSetupFrame(wire.Frame frame) async {
     // These frames arrive *after* decryption
     if (frame.hasV1() && frame.v1.type == wire.V1Frame_FrameType.CANCEL) {
-      print("Inbound $id: Transfer cancelled by sender.");
+      _log.info("Inbound $id: Transfer cancelled by sender.");
       lastError = NearbyCancellationException(CancellationReason.userCanceled);
       await sendDisconnectionAndDisconnect();
       return;
@@ -178,7 +181,7 @@ class InboundNearbyConnection extends NearbyConnection {
         await _processIntroductionFrame(frame);
         break;
       default:
-        print(
+        _log.info(
           "Inbound $id: Ignoring unexpected transfer setup frame in state "
           "$_currentState: ${frame.toProto3Json()}",
         );
@@ -211,7 +214,7 @@ class InboundNearbyConnection extends NearbyConnection {
     if (chunk.body.isNotEmpty) {
       if (fileInfo.fileHandle == null) {
         // This should ideally not happen if acceptTransfer worked
-        print(
+        _log.info(
           "Warning: File handle for payload $payloadId is null, attempting to reopen.",
         );
         try {
@@ -236,13 +239,13 @@ class InboundNearbyConnection extends NearbyConnection {
 
     // Check for LAST_CHUNK flag
     if ((chunk.flags & 1) == 1) {
-      print("Inbound $id: Received last chunk for payload $payloadId");
+      _log.info("Inbound $id: Received last chunk for payload $payloadId");
       await fileInfo.fileHandle?.close();
       fileInfo.fileHandle = null; // Mark as closed
       transferredFiles.remove(payloadId); // Remove completed transfer
 
       if (transferredFiles.isEmpty) {
-        print("Inbound $id: All files received, disconnecting.");
+        _log.info("Inbound $id: All files received, disconnecting.");
         await sendDisconnectionAndDisconnect();
       }
     }
@@ -252,7 +255,7 @@ class InboundNearbyConnection extends NearbyConnection {
   Future<bool> processBytesPayload(Uint8List payload, int payloadId) async {
     if (payloadId == _textPayloadID && _textPayloadID != 0) {
       final urlStr = utf8.decode(payload);
-      print("Inbound $id: Received URL: $urlStr");
+      _log.info("Inbound $id: Received URL: $urlStr");
       await launchUrl(Uri.parse(urlStr));
       await sendDisconnectionAndDisconnect();
       return true; // Handled
@@ -261,7 +264,7 @@ class InboundNearbyConnection extends NearbyConnection {
       final fileInfo = transferredFiles[payloadId];
       if (fileInfo != null && fileInfo.meta.mimeType == "text/plain") {
         if (fileInfo.fileHandle == null) {
-          print(
+          _log.info(
             "Warning: File handle for text payload $payloadId is null, attempting to reopen.",
           );
           try {
@@ -280,7 +283,7 @@ class InboundNearbyConnection extends NearbyConnection {
           await fileInfo.fileHandle!.close();
           fileInfo.fileHandle = null;
           transferredFiles.remove(payloadId);
-          print(
+          _log.info(
             "Inbound $id: Finished writing text payload $payloadId to file.",
           );
           if (transferredFiles.isEmpty) {
@@ -331,7 +334,7 @@ class InboundNearbyConnection extends NearbyConnection {
         port: _remotePort,
       );
 
-      print(
+      _log.info(
         "Inbound $id: Received connection request from ${remoteDeviceInfo!.name} (${remoteDeviceInfo!.type}) at $_remoteIpAddress:$_remotePort",
       );
       _currentState = InboundState.receivedConnectionRequest;
@@ -385,7 +388,7 @@ class InboundNearbyConnection extends NearbyConnection {
         : null;
     if (nextProto != "AES_256_CBC-HMAC_SHA256") {
       // Note: Swift code checks exact match. Let's be strict too.
-      print(
+      _log.info(
         "Warning: Client proposed next protocol '$nextProto', expected 'AES_256_CBC-HMAC_SHA256'",
       );
       // Allowing for now, but might require alert in stricter implementations.
@@ -429,7 +432,9 @@ class InboundNearbyConnection extends NearbyConnection {
       );
     }
     if (msg.messageType != ukey.Ukey2Message_Type.CLIENT_FINISH) {
-      print("Inbound $id: Expected UKEY2 ClientFinish, got ${msg.messageType}");
+      _log.info(
+        "Inbound $id: Expected UKEY2 ClientFinish, got ${msg.messageType}",
+      );
       sendUkey2Alert(ukey.Ukey2Alert_AlertType.BAD_MESSAGE_TYPE);
       throw NearbyUkey2Exception();
     }
@@ -448,11 +453,11 @@ class InboundNearbyConnection extends NearbyConnection {
 
     final digest = await Sha512().hash(rawMsgData);
     if (!listsEqual(digest.bytes, _cipherCommitment!)) {
-      print("Cipher commitment mismatch!");
+      _log.info("Cipher commitment mismatch!");
       sendUkey2Alert(ukey.Ukey2Alert_AlertType.BAD_MESSAGE_DATA);
       throw NearbyUkey2Exception();
     }
-    print("Cipher commitment verified.");
+    _log.info("Cipher commitment verified.");
 
     try {
       final clientFinish = ukey.Ukey2ClientFinished.fromBuffer(msg.messageData);
@@ -466,13 +471,13 @@ class InboundNearbyConnection extends NearbyConnection {
       );
 
       await finalizeKeyExchange(clientKeyProto);
-      print("Inbound $id: UKEY2 Handshake Complete. PIN: $pinCode");
+      _log.info("Inbound $id: UKEY2 Handshake Complete. PIN: $pinCode");
       _currentState = InboundState.receivedUkeyClientFinish;
       if (_receivedClientConnectionResponse) {
         await _sendConnectionResponseAndPairedEncryption();
       }
     } catch (e, s) {
-      print("Error processing ClientFinish payload: $e\n$s");
+      _log.severe("Error processing ClientFinish payload: $e\n$s");
       sendUkey2Alert(ukey.Ukey2Alert_AlertType.BAD_MESSAGE_DATA);
       throw NearbyUkey2Exception();
     }
@@ -488,7 +493,7 @@ class InboundNearbyConnection extends NearbyConnection {
       }
       _validateClientConnectionResponse(frame);
       _receivedClientConnectionResponse = true;
-      print("Inbound $id: Received early plaintext ConnectionResponse");
+      _log.info("Inbound $id: Received early plaintext ConnectionResponse");
       return true;
     } catch (_) {
       return false;
@@ -536,7 +541,7 @@ class InboundNearbyConnection extends NearbyConnection {
       v1: v1Frame,
     );
     await sendFrame(offlineFrame.writeToBuffer());
-    print("Inbound $id: Sent plaintext ConnectionResponse");
+    _log.info("Inbound $id: Sent plaintext ConnectionResponse");
 
     encryptionDone = true;
 
@@ -554,7 +559,7 @@ class InboundNearbyConnection extends NearbyConnection {
     );
 
     await sendTransferSetupFrame(wireFrame);
-    print("Inbound $id: Sent encrypted PairedKeyEncryption");
+    _log.info("Inbound $id: Sent encrypted PairedKeyEncryption");
     _currentState = InboundState.sentConnectionResponse;
   }
 
@@ -568,7 +573,7 @@ class InboundNearbyConnection extends NearbyConnection {
 
   // Handles the encrypted PAIRED_KEY_ENCRYPTION frame from the client
   Future<void> _processPairedKeyEncryptionFrame(wire.Frame frame) async {
-    print("Inbound $id: Processing PairedKeyEncryption");
+    _log.info("Inbound $id: Processing PairedKeyEncryption");
     // We don't actually *use* the data, just send back UNABLE result like Swift
     final pairedResultFrame = wire.PairedKeyResultFrame(
       status: wire.PairedKeyResultFrame_Status.UNABLE,
@@ -583,22 +588,22 @@ class InboundNearbyConnection extends NearbyConnection {
     );
 
     await sendTransferSetupFrame(wireFrame);
-    print("Inbound $id: Sent PairedKeyResult (UNABLE)");
+    _log.info("Inbound $id: Sent PairedKeyResult (UNABLE)");
     _currentState = InboundState.sentPairedKeyResult;
   }
 
   // Handles the encrypted PAIRED_KEY_RESULT frame from the client
   Future<void> _processPairedKeyResultFrame(wire.Frame frame) async {
-    print("Inbound $id: Processing PairedKeyResult");
+    _log.info("Inbound $id: Processing PairedKeyResult");
     // We don't care about the result, just move to the next state
     // where we expect the Introduction frame.
     _currentState = InboundState.receivedPairedKeyResult;
-    print("Inbound $id: Ready to receive Introduction frame");
+    _log.info("Inbound $id: Ready to receive Introduction frame");
   }
 
   // Handles the Introduction frame (list of files/text)
   Future<void> _processIntroductionFrame(wire.Frame frame) async {
-    print("Inbound $id: Processing Introduction");
+    _log.info("Inbound $id: Processing Introduction");
     if (!frame.hasV1() || !frame.v1.hasIntroduction()) {
       throw NearbyRequiredFieldMissingException("frame.v1.introduction");
     }
@@ -625,7 +630,7 @@ class InboundNearbyConnection extends NearbyConnection {
         final payloadIdInt = file.payloadId.toInt();
         if (payloadIdInt == 0) {
           // Should not happen with random IDs
-          print(
+          _log.info(
             "Warning: Received file metadata with payload ID 0 for ${file.name}",
           );
           continue; // Skip this file potentially
@@ -658,7 +663,7 @@ class InboundNearbyConnection extends NearbyConnection {
         final textMeta = introduction.textMetadata.first;
         final payloadIdInt = textMeta.payloadId.toInt();
         if (payloadIdInt == 0) {
-          print(
+          _log.info(
             "Warning: Received text metadata with payload ID 0 for ${textMeta.textTitle}",
           );
           // Decide how to handle this - maybe reject?
@@ -729,7 +734,7 @@ class InboundNearbyConnection extends NearbyConnection {
     }
 
     if (filesMeta.isEmpty && textDesc == null) {
-      print("Inbound $id: Introduction frame has no actionable content.");
+      _log.info("Inbound $id: Introduction frame has no actionable content.");
       await rejectTransfer(reason: wire.ConnectionResponseFrame_Status.REJECT);
       return;
     }
@@ -756,7 +761,7 @@ class InboundNearbyConnection extends NearbyConnection {
   // Called by the UI/Manager to accept or reject the transfer
   Future<void> submitUserConsent(bool accepted) async {
     if (_currentState != InboundState.waitingForUserConsent) {
-      print(
+      _log.info(
         "Inbound $id: submitUserConsent called in unexpected state: $_currentState",
       );
       return;
@@ -772,7 +777,7 @@ class InboundNearbyConnection extends NearbyConnection {
   // --- Private Helper Methods ---
 
   Future<void> acceptTransfer() async {
-    print("Inbound $id: Transfer accepted by user.");
+    _log.info("Inbound $id: Transfer accepted by user.");
     try {
       // Create files and open handles *before* sending ACCEPT
       for (final entry in transferredFiles.entries) {
@@ -785,7 +790,7 @@ class InboundNearbyConnection extends NearbyConnection {
           // The destination path has already been uniqued; start with a clean file.
           fileInfo.fileHandle = await file.open(mode: FileMode.write);
           fileInfo.created = true;
-          print(
+          _log.info(
             "Inbound $id: Opened file handle for payload $payloadId at "
             "${fileInfo.destinationPath}",
           );
@@ -794,7 +799,7 @@ class InboundNearbyConnection extends NearbyConnection {
           lastError = NearbyIOException(
             "Failed to create received file ${fileInfo.destinationPath}: $e",
           );
-          print(
+          _log.info(
             "Inbound $id: Failed to create/open file for payload $payloadId "
             "at ${fileInfo.destinationPath}: $e\n$s",
           );
@@ -822,11 +827,11 @@ class InboundNearbyConnection extends NearbyConnection {
 
       await sendTransferSetupFrame(wireFrame);
       _currentState = InboundState.receivingFiles;
-      print(
+      _log.info(
         "Inbound $id: Sent ACCEPT response, entering receivingFiles state.",
       );
     } catch (e, s) {
-      print("Inbound $id: Error during acceptTransfer: $e\n$s");
+      _log.severe("Inbound $id: Error during acceptTransfer: $e\n$s");
       lastError = (e is Exception) ? e : Exception(e.toString());
       // Attempt to clean up and disconnect
       await _cleanupFailedAccept();
@@ -841,7 +846,7 @@ class InboundNearbyConnection extends NearbyConnection {
         try {
           await File(fileInfo.destinationPath).delete();
         } catch (e) {
-          print(
+          _log.info(
             "Failed to delete partially created file ${fileInfo.destinationPath}: $e",
           );
         }
@@ -865,7 +870,7 @@ class InboundNearbyConnection extends NearbyConnection {
     lastError ??= NearbyCancellationException(
       wireStatusToCancellationReason(reason) ?? CancellationReason.userRejected,
     );
-    print("Inbound $id: Rejecting transfer with reason: $reason");
+    _log.info("Inbound $id: Rejecting transfer with reason: $reason");
     final responseFrame = wire.ConnectionResponseFrame(status: reason);
     final v1WireFrame = wire.V1Frame(
       type: wire.V1Frame_FrameType.RESPONSE,
@@ -880,14 +885,14 @@ class InboundNearbyConnection extends NearbyConnection {
       await sendTransferSetupFrame(wireFrame);
       await sendDisconnectionAndDisconnect(); // Disconnect after sending rejection
     } catch (e, s) {
-      print("Inbound $id: Error sending rejection/disconnection: $e\n$s");
+      _log.severe("Inbound $id: Error sending rejection/disconnection: $e\n$s");
       protocolError(); // Force disconnect on error
     }
     // No need to change state here, sendDisconnection handles it
   }
 
   Future<void> _deletePartiallyReceivedFiles() async {
-    print("Inbound $id: Cleaning up partially received files...");
+    _log.info("Inbound $id: Cleaning up partially received files...");
     for (final fileInfo in transferredFiles.values) {
       await fileInfo.fileHandle?.close(); // Close handle if open
       if (fileInfo.created) {
@@ -896,10 +901,10 @@ class InboundNearbyConnection extends NearbyConnection {
           final file = File(fileInfo.destinationPath);
           if (await file.exists()) {
             await file.delete();
-            print("Deleted partial file: ${fileInfo.destinationPath}");
+            _log.info("Deleted partial file: ${fileInfo.destinationPath}");
           }
         } catch (e) {
-          print(
+          _log.info(
             "Error deleting partially received file ${fileInfo.destinationPath}: $e",
           );
         }

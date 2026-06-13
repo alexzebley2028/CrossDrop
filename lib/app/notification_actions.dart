@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:crossdrop/nearby_share/manager/nearby_manager.dart';
 import 'package:crossdrop/notifications.dart';
+import 'package:logging/logging.dart';
+
+final Logger _log = Logger('notification_actions');
 
 NotificationActionCallback? _activeNotificationActionHandler;
 
@@ -10,7 +13,9 @@ void registerNotificationActionHandler(NotificationActionCallback? handler) {
 }
 
 void handleNotificationResponse(String connectionId, bool accepted) {
-  print('Handling notification response: $connectionId, Accepted: $accepted');
+  _log.info(
+    'Handling notification response: $connectionId, Accepted: $accepted',
+  );
   final activeHandler = _activeNotificationActionHandler;
   if (activeHandler != null) {
     activeHandler(connectionId, accepted);

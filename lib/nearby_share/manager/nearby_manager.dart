@@ -11,6 +11,9 @@ import 'package:crossdrop/nearby_share/platform/fast_init_advertiser.dart';
 import 'package:crossdrop/nearby_share/utils/data_extension.dart';
 import 'package:flutter/foundation.dart'; // For ChangeNotifier
 import 'package:uuid/uuid.dart';
+import 'package:logging/logging.dart';
+
+final Logger _log = Logger('nearby_manager');
 
 // --- Interfaces (similar to Swift protocols) ---
 
@@ -96,24 +99,24 @@ class NearbyConnectionManager extends ChangeNotifier
         _handleIncomingConnection,
         onError: (e, s) {
           if (!identical(_serverSocket, serverSocket)) {
-            print("Ignoring stale server socket error: $e");
+            _log.severe("Ignoring stale server socket error: $e");
             return;
           }
-          print("Active server socket error: $e\n$s");
+          _log.severe("Active server socket error: $e\n$s");
           unawaited(stopBroadcasting());
         },
         onDone: () {
           if (!identical(_serverSocket, serverSocket)) {
-            print("Stale server socket closed");
+            _log.info("Stale server socket closed");
             return;
           }
-          print("Active server socket closed");
+          _log.info("Active server socket closed");
           unawaited(stopBroadcasting());
         },
       );
 
       final port = serverSocket.port;
-      print("TCP Listener started on port $port");
+      _log.info("TCP Listener started on port $port");
 
       final service = BonsoirService(
         name: _generateBonsoirName(_endpointId),
@@ -127,12 +130,12 @@ class NearbyConnectionManager extends ChangeNotifier
       await _bonsoirBroadcast!.start();
 
       _isBroadcasting = true;
-      print(
+      _log.info(
         "Started broadcasting Nearby Share service as $_deviceName ($_endpointId) on port $port",
       );
       notifyListeners();
     } catch (e, s) {
-      print("Error starting broadcasting: $e\n$s");
+      _log.severe("Error starting broadcasting: $e\n$s");
       await _stopBroadcasting();
       rethrow;
     }
@@ -161,7 +164,7 @@ class NearbyConnectionManager extends ChangeNotifier
       _inboundConnections.values.map((conn) => conn.disconnect()),
     );
     _inboundConnections.clear();
-    print("Stopped broadcasting Nearby Share service");
+    _log.info("Stopped broadcasting Nearby Share service");
     notifyListeners();
   }
 
@@ -184,13 +187,13 @@ class NearbyConnectionManager extends ChangeNotifier
           try {
             if (event is BonsoirDiscoveryServiceFoundEvent) {
               final service = event.service;
-              if (service.host == null) {
-                print("Service ${service.name} found, resolving...");
+              if (service.hostAddress == null) {
+                _log.info("Service ${service.name} found, resolving...");
                 unawaited(
                   service
                       .resolve(_bonsoirDiscovery!.serviceResolver)
                       .catchError((Object e, StackTrace s) {
-                        print(
+                        _log.info(
                           "Error resolving service ${service.name}: $e\n$s",
                         );
                       }),
@@ -206,18 +209,18 @@ class NearbyConnectionManager extends ChangeNotifier
               _handleLostService(event.service);
             }
           } catch (e, s) {
-            print("Error handling discovery event $event: $e\n$s");
+            _log.severe("Error handling discovery event $event: $e\n$s");
           }
         },
         onError: (e, s) {
-          print("Discovery stream error: $e\n$s");
+          _log.severe("Discovery stream error: $e\n$s");
           stopDiscovery(); // Stop discovery on stream error
         },
       );
 
       await _bonsoirDiscovery!.start();
       _isDiscovering = true;
-      print("Started Nearby Share discovery");
+      _log.info("Started Nearby Share discovery");
       notifyListeners();
     } catch (_) {
       await _fastInitAdvertiser.stop();
@@ -236,7 +239,7 @@ class NearbyConnectionManager extends ChangeNotifier
     _discoveredDevices.clear();
     _discoveryQrCode = null;
     _isDiscovering = false;
-    print("Stopped Nearby Share discovery");
+    _log.info("Stopped Nearby Share discovery");
     notifyListeners();
   }
 
@@ -262,12 +265,12 @@ class NearbyConnectionManager extends ChangeNotifier
       throw ArgumentError("File paths list cannot be empty.");
     }
 
-    print("Initiating transfer to ${device.name} ($endpointId)");
+    _log.info("Initiating transfer to ${device.name} ($endpointId)");
 
     if (_outboundConnections.values.any(
       (conn) => conn.remoteDeviceInfo?.id == endpointId,
     )) {
-      print("Outgoing connection to $endpointId already exists.");
+      _log.info("Outgoing connection to $endpointId already exists.");
       // Optionally notify UI or just return
       return;
     }
@@ -281,7 +284,7 @@ class NearbyConnectionManager extends ChangeNotifier
         port,
         timeout: const Duration(seconds: 10),
       );
-      print("Socket connected to $ip:$port");
+      _log.info("Socket connected to $ip:$port");
 
       final connectionId = const Uuid().v4();
       final connection = OutboundNearbyConnection(
@@ -300,7 +303,7 @@ class NearbyConnectionManager extends ChangeNotifier
       }
       connection.start();
     } catch (e, s) {
-      print("Failed to initiate transfer to $endpointId: $e\n$s");
+      _log.severe("Failed to initiate transfer to $endpointId: $e\n$s");
       for (var l in _nearbyListeners) {
         // Notify failure if connection couldn't even start
         // Need a way to map back to the UI element expecting this transfer
@@ -317,7 +320,7 @@ class NearbyConnectionManager extends ChangeNotifier
   Future<void> respondToTransfer(String connectionId, bool accept) async {
     final connection = _inboundConnections[connectionId];
     if (connection == null) {
-      print(
+      _log.info(
         "Cannot respond to transfer: Connection ID $connectionId not found.",
       );
       return;
@@ -329,14 +332,14 @@ class NearbyConnectionManager extends ChangeNotifier
   void _handleIncomingConnection(Socket socket) {
     final remoteAddr = socket.remoteAddress.address;
     final remotePort = socket.remotePort;
-    print("Incoming connection from $remoteAddr:$remotePort");
+    _log.info("Incoming connection from $remoteAddr:$remotePort");
 
     final connectionId = const Uuid().v4();
     final connection = InboundNearbyConnection(socket, connectionId);
     connection.delegate = this;
     _inboundConnections[connectionId] = connection;
     connection.onClose.whenComplete(() {
-      print("Inbound connection $connectionId closed completely.");
+      _log.info("Inbound connection $connectionId closed completely.");
       _inboundConnections.remove(connectionId);
     });
     connection.start();
@@ -351,22 +354,26 @@ class NearbyConnectionManager extends ChangeNotifier
     _deviceLossTimers.remove(endpointId)?.cancel();
 
     final txt = service.attributes;
-    final ip = service.host; // Use host from ResolvedBonsoirService
+    final ip = service.hostAddress; // First host address from resolved service
     final port = service.port;
 
     if (ip == null) {
-      print("Ignoring resolved service ${service.name}: missing host/IP");
+      _log.info("Ignoring resolved service ${service.name}: missing host/IP");
       return;
     }
 
     final endpointInfoEncoded = txt['n'];
     if (endpointInfoEncoded == null) {
-      print("Ignoring service ${service.name}: missing 'n' attribute in TXT");
+      _log.info(
+        "Ignoring service ${service.name}: missing 'n' attribute in TXT",
+      );
       return;
     }
     final endpointInfoBytes = endpointInfoEncoded.fromUrlSafeBase64();
     if (endpointInfoBytes == null) {
-      print("Ignoring service ${service.name}: failed to decode 'n' attribute");
+      _log.severe(
+        "Ignoring service ${service.name}: failed to decode 'n' attribute",
+      );
       return;
     }
     try {
@@ -378,7 +385,7 @@ class NearbyConnectionManager extends ChangeNotifier
         final keychain = await qrCode.deriveHiddenKeychain();
         if (listEquals(qrRecord, keychain.advertisingToken)) {
           qrMatched = true;
-          print(
+          _log.info(
             "Service ${service.name} matched QR advertising token for $endpointId",
           );
         } else if (!endpointInfo.visible && qrRecord.length > 28) {
@@ -390,11 +397,11 @@ class NearbyConnectionManager extends ChangeNotifier
             records: endpointInfo.records,
           );
           qrMatched = true;
-          print(
+          _log.info(
             "Service ${service.name} matched encrypted QR record for $endpointId",
           );
         } else if (!endpointInfo.visible) {
-          print(
+          _log.info(
             "Ignoring hidden service ${service.name}: QR record did not match current QR key (${qrRecord.length} bytes)",
           );
           return;
@@ -403,13 +410,13 @@ class NearbyConnectionManager extends ChangeNotifier
 
       if (!endpointInfo.visible) {
         if (qrCode == null) {
-          print(
+          _log.info(
             "Ignoring hidden service ${service.name}: discovery has no QR context",
           );
           return;
         }
         if (qrRecord == null) {
-          print(
+          _log.info(
             "Ignoring hidden service ${service.name}: missing QR record; available records: ${endpointInfo.records.keys.join(', ')}",
           );
           return;
@@ -429,7 +436,7 @@ class NearbyConnectionManager extends ChangeNotifier
 
       bool needsNotify = false;
       if (existingDevice == null) {
-        print(
+        _log.info(
           "Device Found & Resolved: ${newDeviceInfo.name} ($endpointId) at $ip:$port",
         );
         _discoveredDevices[endpointId] = newDeviceInfo;
@@ -440,7 +447,7 @@ class NearbyConnectionManager extends ChangeNotifier
           existingDevice.qrMatched != newDeviceInfo.qrMatched ||
           !existingDevice.isResolved) {
         // Update if name changed or if it wasn't resolved before
-        print(
+        _log.info(
           "Device Updated: ${newDeviceInfo.name} ($endpointId) at $ip:$port",
         );
         _discoveredDevices[endpointId] = newDeviceInfo;
@@ -454,7 +461,9 @@ class NearbyConnectionManager extends ChangeNotifier
         notifyListeners();
       }
     } catch (e, s) {
-      print("Error parsing endpoint info for service ${service.name}: $e\n$s");
+      _log.severe(
+        "Error parsing endpoint info for service ${service.name}: $e\n$s",
+      );
     }
   }
 
@@ -462,11 +471,11 @@ class NearbyConnectionManager extends ChangeNotifier
     final endpointId = _getEndpointIdFromService(service);
     if (endpointId != null && _discoveredDevices.containsKey(endpointId)) {
       _deviceLossTimers[endpointId]?.cancel();
-      print("Device Lost pending: $endpointId");
+      _log.info("Device Lost pending: $endpointId");
       _deviceLossTimers[endpointId] = Timer(_deviceLostDebounce, () {
         _deviceLossTimers.remove(endpointId);
         if (_discoveredDevices.remove(endpointId) != null) {
-          print("Device Lost: $endpointId");
+          _log.info("Device Lost: $endpointId");
           for (var l in _nearbyListeners) {
             l.onDeviceLost(endpointId);
           }
@@ -490,7 +499,7 @@ class NearbyConnectionManager extends ChangeNotifier
     RemoteDeviceInfo device,
     InboundNearbyConnection connection,
   ) {
-    print(
+    _log.info(
       "Manager: Received transfer request ${transfer.id} from ${device.name}",
     );
     for (var l in _nearbyListeners) {
@@ -503,7 +512,7 @@ class NearbyConnectionManager extends ChangeNotifier
     InboundNearbyConnection connection,
     Exception? error,
   ) {
-    print(
+    _log.info(
       "Manager: Inbound connection ${connection.id} terminated. Error: $error",
     );
     _inboundConnections.remove(connection.id);
@@ -524,7 +533,7 @@ class NearbyConnectionManager extends ChangeNotifier
 
   @override
   void outboundConnectionEstablished(OutboundNearbyConnection connection) {
-    print(
+    _log.info(
       "Manager: Outbound connection ${connection.id} established. PIN: ${connection.pinCode}",
     );
     if (connection.remoteDeviceInfo != null && connection.pinCode != null) {
@@ -539,7 +548,7 @@ class NearbyConnectionManager extends ChangeNotifier
     OutboundNearbyConnection connection,
     Exception error,
   ) {
-    print("Manager: Outbound connection ${connection.id} failed: $error");
+    _log.severe("Manager: Outbound connection ${connection.id} failed: $error");
     _outboundConnections.remove(connection.id);
     for (var l in _nearbyListeners) {
       l.onTransferFinished(connection.id, false, error);
@@ -548,7 +557,9 @@ class NearbyConnectionManager extends ChangeNotifier
 
   @override
   void outboundTransferAccepted(OutboundNearbyConnection connection) {
-    print("Manager: Outbound transfer ${connection.id} accepted by receiver.");
+    _log.info(
+      "Manager: Outbound transfer ${connection.id} accepted by receiver.",
+    );
   }
 
   @override
@@ -563,7 +574,9 @@ class NearbyConnectionManager extends ChangeNotifier
 
   @override
   void outboundTransferFinished(OutboundNearbyConnection connection) {
-    print("Manager: Outbound transfer ${connection.id} finished successfully.");
+    _log.info(
+      "Manager: Outbound transfer ${connection.id} finished successfully.",
+    );
     _outboundConnections.remove(connection.id);
     for (var l in _nearbyListeners) {
       l.onTransferFinished(connection.id, true, null);
@@ -596,7 +609,9 @@ class NearbyConnectionManager extends ChangeNotifier
         return ascii.decode(nameData.sublist(1, 5));
       }
     } catch (e) {
-      print("Error parsing endpoint ID from service name ${service.name}: $e");
+      _log.severe(
+        "Error parsing endpoint ID from service name ${service.name}: $e",
+      );
     }
     return null;
   }

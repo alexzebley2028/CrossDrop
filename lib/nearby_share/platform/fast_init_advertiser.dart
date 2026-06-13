@@ -1,6 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:logging/logging.dart';
+
+final Logger _log = Logger('fast_init_advertiser');
 
 class FastInitAdvertiser {
   static const MethodChannel _channel = MethodChannel('crossdrop/fast_init');
@@ -13,14 +16,18 @@ class FastInitAdvertiser {
       final started = await _channel.invokeMethod<bool>('start') ?? false;
       _started = started;
       if (started) {
-        print('Requested Quick Share Fast Init BLE advertising');
+        _log.info('Requested Quick Share Fast Init BLE advertising');
       } else {
-        print('Quick Share Fast Init BLE advertising is not available');
+        _log.info('Quick Share Fast Init BLE advertising is not available');
       }
     } on MissingPluginException {
-      print('Quick Share Fast Init BLE advertising is not implemented here');
+      _log.info(
+        'Quick Share Fast Init BLE advertising is not implemented here',
+      );
     } catch (e, s) {
-      print('Failed to start Quick Share Fast Init BLE advertising: $e\n$s');
+      _log.severe(
+        'Failed to start Quick Share Fast Init BLE advertising: $e\n$s',
+      );
     }
   }
 
@@ -29,11 +36,13 @@ class FastInitAdvertiser {
     _started = false;
     try {
       await _channel.invokeMethod<void>('stop');
-      print('Stopped Quick Share Fast Init BLE advertising');
+      _log.info('Stopped Quick Share Fast Init BLE advertising');
     } on MissingPluginException {
       // Platform does not implement the channel.
     } catch (e, s) {
-      print('Failed to stop Quick Share Fast Init BLE advertising: $e\n$s');
+      _log.severe(
+        'Failed to stop Quick Share Fast Init BLE advertising: $e\n$s',
+      );
     }
   }
 }

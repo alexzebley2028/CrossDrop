@@ -5,6 +5,9 @@ import 'package:crossdrop/app_config.dart';
 import 'package:crossdrop/window/on_close_window.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:logging/logging.dart';
+
+final Logger _log = Logger('window_setup');
 
 const Size defaultWindowSize = Size(420, 640);
 const Size minimumWindowSize = Size(360, 480);
@@ -58,7 +61,7 @@ Future<void> ensureWindowSizeAtLeast(Size targetSize) async {
       await windowManager.setSize(nextSize);
     }
   } catch (e, s) {
-    print('Failed to resize window for outgoing transfer: $e\n$s');
+    _log.severe('Failed to resize window for outgoing transfer: $e\n$s');
   }
 }
 

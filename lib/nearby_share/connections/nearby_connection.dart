@@ -17,6 +17,9 @@ import 'package:crossdrop/nearby_share/crypto/crypto_utils.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:pointycastle/export.dart' as pc;
+import 'package:logging/logging.dart';
+
+final Logger _log = Logger('nearby_connection');
 
 // Constants
 const int saneFrameLength = 5 * 1024 * 1024; // 5 MiB
@@ -58,7 +61,7 @@ abstract class NearbyConnection {
   Uint8List? authStringBytes;
 
   NearbyConnection(this._socket, this.id) {
-    print(
+    _log.info(
       'NearbyConnection created for $id with ${_socket.remoteAddress}:${_socket.remotePort}',
     );
   }
@@ -76,21 +79,21 @@ abstract class NearbyConnection {
 
   // Called when the socket is ready (or assumed ready after creation)
   void connectionReady() {
-    print('Connection $id is ready.');
+    _log.info('Connection $id is ready.');
   }
 
   // Handles incoming raw data from the socket
   final List<int> _receiveBuffer = [];
   void _onDataReceived(Uint8List data) {
     _receiveBuffer.addAll(data);
-    // print('Connection $id received ${data.length} bytes. Buffer size: ${_receiveBuffer.length}');
+    // _log.info('Connection $id received ${data.length} bytes. Buffer size: ${_receiveBuffer.length}');
 
     while (_receiveBuffer.length >= 4) {
       // Read length prefix (4 bytes, big-endian)
       final lengthBytes = Uint8List.fromList(_receiveBuffer.sublist(0, 4));
       final length = ByteData.view(lengthBytes.buffer).getUint32(0, Endian.big);
 
-      // print('Connection $id: Expecting frame length: $length');
+      // _log.info('Connection $id: Expecting frame length: $length');
 
       if (length > saneFrameLength) {
         lastError = NearbyProtocolException(
@@ -107,18 +110,18 @@ abstract class NearbyConnection {
           _receiveBuffer.sublist(4, 4 + length),
         );
         _receiveBuffer.removeRange(0, 4 + length);
-        // print('Connection $id: Processing frame of length ${frameData.length}. Remaining buffer: ${_receiveBuffer.length}');
+        // _log.info('Connection $id: Processing frame of length ${frameData.length}. Remaining buffer: ${_receiveBuffer.length}');
         try {
           _enqueueReceivedFrame(frameData);
         } catch (e, s) {
-          print('Connection $id: Error queuing frame: $e\n$s');
+          _log.severe('Connection $id: Error queuing frame: $e\n$s');
           lastError = (e is Exception) ? e : Exception(e.toString());
           _reportError(lastError!);
           protocolError();
         }
       } else {
         // Need more data for the current frame
-        // print('Connection $id: Incomplete frame, need ${4 + length}, have ${_receiveBuffer.length}');
+        // _log.info('Connection $id: Incomplete frame, need ${4 + length}, have ${_receiveBuffer.length}');
         break; // Exit the loop, wait for more data
       }
     }
@@ -130,7 +133,7 @@ abstract class NearbyConnection {
       try {
         await processReceivedFrame(frameData);
       } catch (e, s) {
-        print('Connection $id: Error processing frame: $e\n$s');
+        _log.severe('Connection $id: Error processing frame: $e\n$s');
         lastError = (e is Exception) ? e : Exception(e.toString());
         _reportError(lastError!);
         protocolError();
@@ -141,7 +144,7 @@ abstract class NearbyConnection {
   // Called when an error occurs on the socket
   void _onError(Object error, StackTrace stackTrace) {
     if (connectionClosed) return;
-    print('Connection $id socket error: $error\n$stackTrace');
+    _log.severe('Connection $id socket error: $error\n$stackTrace');
     lastError = (error is Exception) ? error : Exception(error.toString());
     connectionClosed = true; // Mark as closed due to error
     _reportError(lastError!); // Report specific error
@@ -155,7 +158,7 @@ abstract class NearbyConnection {
   // Called when the socket is closed by the remote peer
   void _onDone() {
     if (connectionClosed) return;
-    print('Connection $id closed by remote peer.');
+    _log.info('Connection $id closed by remote peer.');
     connectionClosed = true;
     handleConnectionClosure(); // General closure handling
     if (!_closedCompleter.isCompleted) {
@@ -189,7 +192,7 @@ abstract class NearbyConnection {
   // Sends a raw frame with length prefix
   Future<void> sendFrame(List<int> frame, {void Function()? completion}) {
     if (connectionClosed) {
-      print('Attempted to send on closed connection $id');
+      _log.info('Attempted to send on closed connection $id');
       return Future<void>.value();
     }
     final length = frame.length;
@@ -204,7 +207,7 @@ abstract class NearbyConnection {
         await _socket.flush();
         completion?.call();
       } catch (e, s) {
-        print('Connection $id: Error sending frame: $e\n$s');
+        _log.severe('Connection $id: Error sending frame: $e\n$s');
         _onError(e, s);
       }
     });
@@ -402,7 +405,7 @@ abstract class NearbyConnection {
                 payloadTransfer.payloadHeader.hasId()
             ? payloadTransfer.payloadHeader.id.toString()
             : 'unknown';
-        print("Received payload ACK for payload $payloadId");
+        _log.info("Received payload ACK for payload $payloadId");
         return;
       }
 
@@ -417,7 +420,9 @@ abstract class NearbyConnection {
             : offline
                   .PayloadTransferFrame_ControlMessage_EventType
                   .UNKNOWN_EVENT_TYPE;
-        print("Received payload control frame for payload $payloadId: $event");
+        _log.info(
+          "Received payload control frame for payload $payloadId: $event",
+        );
         if (event ==
                 offline
                     .PayloadTransferFrame_ControlMessage_EventType
@@ -489,7 +494,9 @@ abstract class NearbyConnection {
               final innerFrame = wire.Frame.fromBuffer(fullPayload);
               await processTransferSetupFrame(innerFrame);
             } catch (e, s) {
-              print('Failed to parse bytes payload as wire.Frame: $e\n$s');
+              _log.severe(
+                'Failed to parse bytes payload as wire.Frame: $e\n$s',
+              );
               // Rethrow or handle as appropriate
               throw NearbyProtocolException(
                 "Failed to process BYTES payload $payloadId as setup frame",
@@ -503,7 +510,7 @@ abstract class NearbyConnection {
       }
     } else if (offlineFrame.hasV1() &&
         offlineFrame.v1.type == offline.V1Frame_FrameType.KEEP_ALIVE) {
-      print("Received keep-alive");
+      _log.info("Received keep-alive");
       if (offlineFrame.v1.hasKeepAlive() && offlineFrame.v1.keepAlive.ack) {
         // This is an ack to our keep-alive, no action needed maybe?
       } else {
@@ -511,13 +518,13 @@ abstract class NearbyConnection {
         sendKeepAlive(ack: true);
       }
     } else {
-      print(
+      _log.info(
         "Unhandled encrypted offline frame: ${offlineFrame.toProto3Json()}",
       );
       // Potentially handle other frame types like DISCONNECTION if needed
       if (offlineFrame.hasV1() &&
           offlineFrame.v1.type == offline.V1Frame_FrameType.DISCONNECTION) {
-        print("Received disconnection frame");
+        _log.info("Received disconnection frame");
         disconnect(); // Close our end
       }
     }
@@ -573,7 +580,7 @@ abstract class NearbyConnection {
 
     authStringBytes = Uint8List.fromList(await authStringKey.extractBytes());
     _pinCode = await derivePinCode(authStringKey);
-    print("Derived PIN Code: $_pinCode");
+    _log.info("Derived PIN Code: $_pinCode");
 
     // Derive D2D Keys
     const d2dSalt = [
@@ -668,22 +675,22 @@ abstract class NearbyConnection {
       sendHmacKey = clientSigKey;
     }
 
-    print('Connection $id: Key exchange finalized.');
+    _log.info('Connection $id: Key exchange finalized.');
   }
 
   // Gracefully disconnects the socket
   Future<void> disconnect() async {
     if (connectionClosed) return;
-    print('Connection $id: Disconnecting...');
+    _log.info('Connection $id: Disconnecting...');
     connectionClosed = true;
     await _socketSubscription?.cancel();
     _socketSubscription = null;
     try {
       // Socket.close() sends FIN and waits for acknowledgment.
       await _socket.close();
-      print('Connection $id: Socket closed gracefully.');
+      _log.info('Connection $id: Socket closed gracefully.');
     } catch (e, s) {
-      print(
+      _log.info(
         'Connection $id: Error during socket close: $e\n$s. Destroying socket.',
       );
       // Fallback to destroy if close fails
@@ -698,7 +705,7 @@ abstract class NearbyConnection {
 
   // Closes the connection immediately due to a protocol error
   void protocolError() {
-    print('Connection $id: Protocol Error. Last error: $lastError');
+    _log.severe('Connection $id: Protocol Error. Last error: $lastError');
     if (connectionClosed) return;
     connectionClosed = true;
     _socketSubscription?.cancel();
@@ -735,22 +742,22 @@ abstract class NearbyConnection {
     try {
       if (encryptionDone) {
         await encryptAndSendOfflineFrame(offlineFrame);
-        print('Connection $id: Sent encrypted DISCONNECTION');
+        _log.info('Connection $id: Sent encrypted DISCONNECTION');
       } else {
         await sendFrame(offlineFrame.writeToBuffer());
-        print('Connection $id: Sent unencrypted DISCONNECTION');
+        _log.info('Connection $id: Sent unencrypted DISCONNECTION');
       }
       sent = true;
     } catch (e, s) {
-      print('Connection $id: Failed to send disconnection frame: $e\n$s');
+      _log.severe('Connection $id: Failed to send disconnection frame: $e\n$s');
     }
 
     if (sent && waitForRemoteClose) {
-      print('Connection $id: Waiting for remote close after DISCONNECTION');
+      _log.info('Connection $id: Waiting for remote close after DISCONNECTION');
       unawaited(
         Future<void>.delayed(remoteCloseTimeout, () async {
           if (connectionClosed) return;
-          print(
+          _log.info(
             'Connection $id: Remote close timed out after DISCONNECTION; closing locally.',
           );
           await disconnect();
@@ -767,7 +774,7 @@ abstract class NearbyConnection {
   // Sends a UKEY2 Alert message and disconnects
   void sendUkey2Alert(ukey.Ukey2Alert_AlertType type) {
     if (connectionClosed) return;
-    print('Connection $id: Sending UKEY2 Alert: $type');
+    _log.info('Connection $id: Sending UKEY2 Alert: $type');
 
     final alert = ukey.Ukey2Alert(type: type);
     final msg = ukey.Ukey2Message(
@@ -798,13 +805,13 @@ abstract class NearbyConnection {
     try {
       if (encryptionDone) {
         unawaited(encryptAndSendOfflineFrame(offlineFrame));
-        print('Connection $id: Sent encrypted KEEP_ALIVE (ack: $ack)');
+        _log.info('Connection $id: Sent encrypted KEEP_ALIVE (ack: $ack)');
       } else {
         unawaited(sendFrame(offlineFrame.writeToBuffer()));
-        print('Connection $id: Sent unencrypted KEEP_ALIVE (ack: $ack)');
+        _log.info('Connection $id: Sent unencrypted KEEP_ALIVE (ack: $ack)');
       }
     } catch (e, s) {
-      print('Connection $id: Error sending KEEP_ALIVE: $e\n$s');
+      _log.severe('Connection $id: Error sending KEEP_ALIVE: $e\n$s');
       _onError(e, s); // Treat send failure as a connection error
     }
   }
@@ -812,7 +819,7 @@ abstract class NearbyConnection {
   // Called when the connection is fully closed (either normally or via error)
   // Subclasses should override this for cleanup.
   void handleConnectionClosure() {
-    print(
+    _log.info(
       'Connection $id: handleConnectionClosure called. Closed: $connectionClosed',
     );
     connectionClosed = true; // Ensure flag is set
@@ -835,6 +842,6 @@ abstract class NearbyConnection {
   // Subclasses might override or use a StreamController for this.
   void _reportError(Exception error) {
     // Default implementation does nothing, subclasses/manager should handle.
-    print("Connection $id reported error: $error");
+    _log.severe("Connection $id reported error: $error");
   }
 }

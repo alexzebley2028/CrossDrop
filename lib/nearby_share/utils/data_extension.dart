@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:logging/logging.dart';
+
+final Logger _log = Logger('data_extension');
 
 const String _endpointIdAlphabet =
     '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -60,7 +63,7 @@ Uint8List? urlSafeBase64Decode(String str) {
     }
     return base64Decode(regularB64);
   } catch (e) {
-    print('Error decoding base64 string: $e');
+    _log.severe('Error decoding base64 string: $e');
     return null;
   }
 }
