@@ -1,25 +1,19 @@
+# CrossDrop
+
 > [!IMPORTANT]
-> This repository is back in an experimental continuation state on `main`. [Google has announced official compatibility between Quick Share and AirDrop](https://blog.google/products/android/quick-share-airdrop/), so this project may no longer be necessary for everyday use, but the codebase remains available as a work-in-progress implementation for testing and development.
+> This repository is back in an experimental continuation state on `main`. [Google has announced official compatibility between Quick Share and AirDrop](https://blog.google/products/android/quick-share-airdrop/), so this project may no longer be necessary for everyday use, but the codebase remains available.
 
 **CrossDrop** is a partial implementation of [Google's Quick Share](https://blog.google/products/android/how-to-use-quick-share-android/) in Flutter for macOS, iOS and Linux.
 
 CrossDrop is based on [NearDrop](https://github.com/grishka/NearDrop), a Swift implementation of Nearby Share for macOS.
 
-> [!WARNING]
-> **⚠️ This is a work in progress. It is not yet feature-complete, and it is not yet stable. It is not yet ready for use.**
-
 [Protocol documentation](https://github.com/grishka/NearDrop/blob/master/PROTOCOL.md) is available in the NearDrop repository.
 
 The app lives in your menu bar and saves files to your downloads folder.
 
-ℹ️ Getting CrossDrop to work on iOS has the least priority, first getting it to work on Linux is the goal. 
-
-📈 Since this project has gotten more attention, I will try very hard to release a working version as soon as possible. While much of the UI is ready so far, I'm currently working on the Quick Share feature itself. After that, I still need to implement notifications.
+ℹ️ Getting CrossDrop to work on iOS has the least priority, first getting it to work on macOS and Linux is the goal.
 
 ## Installing
-
-> [!WARNING]
-> Builds are **pre-release** and intended for testing only (see the warning above).
 
 Grab the latest build from the [Releases](https://github.com/Medformatik/CrossDrop/releases) page.
 
@@ -76,9 +70,8 @@ sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-
 
 ## Limitations
 
-* **Receive only**. For now. I haven't yet figured out how to make Android turn on the MDNS service and/or show the "a device nearby is sharing" notification.
-* **Wi-Fi LAN only**. Your Android device and your Mac need to be on the same network for this app to work. Google's implementation supports multiple mediums, including Wi-Fi Direct, Wi-Fi hotspot, Bluetooth, some kind of 5G peer-to-peer connection, and even a WebRTC-based protocol that goes over the internet through Google servers. Wi-Fi direct isn't supported on macOS (Apple has their own, incompatible, AWDL thing, used in AirDrop). Bluetooth needs further reverse engineering.
-* **Visible to everyone on your network at all times** while the app is running. Limited visibility (contacts etc) requires talking to Google servers, and becoming temporarily visible requires listening for whatever triggers the "device nearby is sharing" notification.
+- **LAN only**. Your Android device and your Mac need to be on the same network for this app to work. Google's implementation supports multiple mediums, including Wi-Fi Direct, Wi-Fi hotspot, Bluetooth, some kind of 5G peer-to-peer connection, and even a WebRTC-based protocol that goes over the internet through Google servers. Wi-Fi direct isn't supported on macOS (Apple has their own, incompatible, AWDL thing, used in AirDrop). Bluetooth needs further reverse engineering.
+- **Visible to everyone on your network at all times** while the app is running. Limited visibility requires talking to Google servers, and becoming temporarily visible requires listening for whatever triggers the "device nearby is sharing" notification.
 
 ## Contributing
 
