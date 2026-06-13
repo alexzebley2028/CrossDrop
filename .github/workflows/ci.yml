@@ -93,7 +93,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             clang cmake ninja-build pkg-config \
-            libgtk-3-dev liblzma-dev libstdc++-12-dev
+            libgtk-3-dev liblzma-dev libstdc++-12-dev \
+            libayatana-appindicator3-dev
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2.23.0
@@ -128,6 +129,13 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      # device_info_plus needs a recent iOS SDK; the runner's default Xcode can
+      # be older, so select the newest installed.
+      - name: Select latest Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)/Contents/Developer"
+          xcodebuild -version
 
       # No codesigning on CI; just verify the iOS app + pure-SPM setup compile.
       - name: Build iOS app (no codesign)
