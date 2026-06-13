@@ -1,0 +1,266 @@
+name: Release
+
+# Builds signed, notarized macOS and packaged Linux artifacts and attaches them
+# to a GitHub Release. Triggered by pushing a version tag, e.g. `v1.0.0`.
+#
+# Required repository secrets (macOS signing + notarization):
+#   MACOS_CERTIFICATE_BASE64    base64 of the Developer ID Application .p12
+#   MACOS_CERTIFICATE_PASSWORD  password for that .p12
+#   MACOS_KEYCHAIN_PASSWORD     any password for the temporary CI keychain
+#   MACOS_SIGN_IDENTITY         e.g. "Developer ID Application: Name (TEAMID)"
+#   AC_API_KEY_BASE64           base64 of the App Store Connect API key (.p8)
+#   AC_API_KEY_ID               App Store Connect API key ID
+#   AC_API_ISSUER_ID            App Store Connect API issuer ID
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+# Least privilege: build jobs only read; the publish job grants its own write.
+permissions:
+  contents: read
+
+env:
+  APP_NAME: CrossDrop
+  FLUTTER_VERSION: "3.44.2"
+
+jobs:
+  guard:
+    name: Verify tag matches pubspec version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.3
+
+      - name: Check tag matches pubspec version
+        if: github.ref_type == 'tag'
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//; s/+.*//')"
+          expected="v${version}"
+          if [ "$TAG" != "$expected" ]; then
+            echo "::error::Tag ${TAG} does not match pubspec version (expected ${expected}). Bump pubspec.yaml or retag."
+            exit 1
+          fi
+          echo "Tag ${TAG} matches pubspec version ${version}."
+
+  macos:
+    name: Signed macOS build
+    needs: guard
+    runs-on: macos-latest
+    timeout-minutes: 60
+    outputs:
+      version: ${{ steps.package.outputs.version }}
+      sha256: ${{ steps.package.outputs.sha256 }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.3
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          pub-cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Import signing certificate
+        env:
+          MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          keychain="$RUNNER_TEMP/app-signing.keychain-db"
+          cert="$RUNNER_TEMP/certificate.p12"
+
+          printf '%s' "$MACOS_CERTIFICATE_BASE64" | base64 --decode > "$cert"
+
+          security create-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$keychain"
+          security import "$cert" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_KEYCHAIN_PASSWORD" "$keychain"
+          security list-keychain -d user -s "$keychain" login.keychain-db
+
+      - name: Build macOS release app
+        run: flutter build macos --release
+
+      - name: Sign app bundle
+        env:
+          IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+        run: |
+          set -euo pipefail
+          app="build/macos/Build/Products/Release/${APP_NAME}.app"
+
+          # Sign nested Mach-O code first (inside-out), then framework bundles.
+          find "$app/Contents/Frameworks" -type f \( -name "*.dylib" -o -name "*.so" \) -print0 \
+            | while IFS= read -r -d '' f; do
+                codesign --force --timestamp --options runtime --sign "$IDENTITY" "$f"
+              done
+          find "$app/Contents/Frameworks" -type d -name "*.framework" -print0 \
+            | while IFS= read -r -d '' fw; do
+                codesign --force --timestamp --options runtime --sign "$IDENTITY" "$fw"
+              done
+
+          # Sign the app last, applying the sandbox entitlements.
+          codesign --force --timestamp --options runtime \
+            --entitlements macos/Runner/Release.entitlements \
+            --sign "$IDENTITY" "$app"
+
+          codesign --verify --deep --strict --verbose=2 "$app"
+
+      - name: Notarize and staple
+        env:
+          AC_API_KEY_BASE64: ${{ secrets.AC_API_KEY_BASE64 }}
+          AC_API_KEY_ID: ${{ secrets.AC_API_KEY_ID }}
+          AC_API_ISSUER_ID: ${{ secrets.AC_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          app="build/macos/Build/Products/Release/${APP_NAME}.app"
+          key="$RUNNER_TEMP/ac_api_key.p8"
+          printf '%s' "$AC_API_KEY_BASE64" | base64 --decode > "$key"
+
+          notarize_zip="$RUNNER_TEMP/notarize.zip"
+          ditto -c -k --keepParent "$app" "$notarize_zip"
+
+          xcrun notarytool submit "$notarize_zip" \
+            --key "$key" --key-id "$AC_API_KEY_ID" --issuer "$AC_API_ISSUER_ID" --wait
+
+          xcrun stapler staple "$app"
+          spctl --assess --type execute --verbose=4 "$app"
+
+      - name: Package signed app
+        id: package
+        run: |
+          set -euo pipefail
+          app="build/macos/Build/Products/Release/${APP_NAME}.app"
+          version="$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//; s/+.*//')"
+          mkdir -p dist
+          zip="dist/${APP_NAME}-${version}-macos-universal.zip"
+
+          ditto -c -k --keepParent "$app" "$zip"
+          sha="$(shasum -a 256 "$zip" | awk '{print $1}')"
+          printf '%s  %s\n' "$sha" "$(basename "$zip")" > "$zip.sha256"
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "sha256=${sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: macos-dist
+          path: dist/*
+          if-no-files-found: error
+
+  linux:
+    name: Packaged Linux build
+    needs: guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.3
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev \
+            libayatana-appindicator3-dev
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          pub-cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Linux release bundle
+        run: flutter build linux --release
+
+      - name: Package app
+        run: |
+          set -euo pipefail
+          version="$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//; s/+.*//')"
+          bundle="build/linux/x64/release/bundle"
+          mkdir -p dist
+
+          tarball="dist/${APP_NAME}-${version}-linux-x64.tar.gz"
+          rm -rf "dist/${APP_NAME}"
+          cp -r "$bundle" "dist/${APP_NAME}"
+          tar -C dist -czf "$tarball" "${APP_NAME}"
+          rm -rf "dist/${APP_NAME}"
+
+          appimage="dist/${APP_NAME}-${version}-linux-x86_64.AppImage"
+          packaging/linux/build-appimage.sh "$bundle" "$appimage"
+
+          ( cd dist && sha256sum "$(basename "$tarball")" "$(basename "$appimage")" > "${APP_NAME}-${version}-linux.sha256" )
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: linux-dist
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: [macos, linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.3
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8.0.1
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Render Homebrew cask
+        env:
+          VERSION: ${{ needs.macos.outputs.version }}
+          SHA256: ${{ needs.macos.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          sed \
+            -e "s|REPLACE_WITH_SHA256|${SHA256}|" \
+            -e "s|version \"1.0.0\"|version \"${VERSION}\"|" \
+            packaging/homebrew/Casks/crossdrop.rb.template > dist/crossdrop.rb
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          # workflow_dispatch has no tag ref; fall back to the pubspec version.
+          if [ "${GITHUB_REF_TYPE:-}" != "tag" ]; then
+            TAG="v$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//; s/+.*//')"
+          fi
+          gh release create "$TAG" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "CrossDrop $TAG" \
+            --generate-notes \
+            --prerelease

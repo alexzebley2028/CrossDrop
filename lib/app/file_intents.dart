@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:crossdrop/app/file_paths.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:logging/logging.dart';
+
+final Logger _log = Logger('file_intents');
 
 const MethodChannel _fileIntentChannel = MethodChannel(
   'crossdrop/file_intents',
@@ -47,7 +50,7 @@ class FileIntentController {
     } on MissingPluginException {
       // The channel is only implemented on platforms with native open-file hooks.
     } catch (e, s) {
-      print('Failed to notify native file intent bridge: $e\n$s');
+      _log.severe('Failed to notify native file intent bridge: $e\n$s');
     }
   }
 

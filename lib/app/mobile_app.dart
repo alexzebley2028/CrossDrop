@@ -17,6 +17,9 @@ import 'package:crossdrop/notifications.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:logging/logging.dart';
+
+final Logger _log = Logger('mobile_app');
 
 class MobileApp extends StatefulWidget {
   final List<String> initialOutgoingFilePaths;
@@ -109,7 +112,7 @@ class _MobileAppState extends State<MobileApp>
     try {
       await _manager.startBroadcasting(deviceName ?? await getDeviceName());
     } catch (e, s) {
-      print('Failed to update receive visibility: $e\n$s');
+      _log.severe('Failed to update receive visibility: $e\n$s');
       if (!mounted) return;
       setState(() {
         _receiveError = e.toString();
@@ -171,7 +174,7 @@ class _MobileAppState extends State<MobileApp>
     });
     unawaited(
       showTransferNotification(pendingTransfer, device).catchError((e, s) {
-        print('Failed to show transfer notification: $e\n$s');
+        _log.severe('Failed to show transfer notification: $e\n$s');
       }),
     );
   }
@@ -287,7 +290,7 @@ class _MobileAppState extends State<MobileApp>
     try {
       await openFileWithDefaultApp(localPath);
     } catch (e, s) {
-      print('Failed to open received file: $e\n$s');
+      _log.severe('Failed to open received file: $e\n$s');
     }
   }
 
@@ -307,7 +310,7 @@ class _MobileAppState extends State<MobileApp>
       final files = await openFiles();
       await _startOutgoingFileSelection(files.map((file) => file.path));
     } catch (e, s) {
-      print('Failed to pick outgoing files: $e\n$s');
+      _log.severe('Failed to pick outgoing files: $e\n$s');
       if (!mounted) return;
       setState(() {
         _outgoingStatus = 'Could not open file picker';
@@ -340,7 +343,7 @@ class _MobileAppState extends State<MobileApp>
     try {
       await _manager.startDiscovery();
     } catch (e, s) {
-      print('Failed to start discovery for outgoing transfer: $e\n$s');
+      _log.severe('Failed to start discovery for outgoing transfer: $e\n$s');
       if (!mounted) return;
       setState(() {
         _outgoingStatus = 'Could not start discovery';
@@ -364,7 +367,7 @@ class _MobileAppState extends State<MobileApp>
       await _manager.initiateTransfer(device.id, List.of(_outgoingFilePaths));
       await _manager.stopDiscovery();
     } catch (e, s) {
-      print('Failed to start outgoing transfer: $e\n$s');
+      _log.severe('Failed to start outgoing transfer: $e\n$s');
       if (!mounted) return;
       setState(() {
         _outgoingStatus = 'Could not start transfer';
@@ -393,7 +396,9 @@ class _MobileAppState extends State<MobileApp>
   void _handleNotificationAction(String connectionId, bool accepted) {
     unawaited(
       _respondToPendingTransfer(connectionId, accepted).catchError((e, s) {
-        print('Failed to handle notification action for $connectionId: $e\n$s');
+        _log.severe(
+          'Failed to handle notification action for $connectionId: $e\n$s',
+        );
       }),
     );
   }

@@ -23,6 +23,9 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:logging/logging.dart';
+
+final Logger _log = Logger('app');
 
 enum AnimationPhase { idle, fadeIn, visible, fadeOut }
 
@@ -96,13 +99,13 @@ class _AppState extends State<App> implements NearbyEventsListener {
       try {
         await _appSystemTray?.initSystemTray();
       } catch (e, s) {
-        print("Failed to initialize system tray: $e\n$s");
+        _log.severe("Failed to initialize system tray: $e\n$s");
       }
       try {
-        print("Starting broadcasting with name: $currentDeviceName");
+        _log.info("Starting broadcasting with name: $currentDeviceName");
         await _manager.startBroadcasting(currentDeviceName);
       } catch (e, s) {
-        print("Failed to start broadcasting: $e\n$s");
+        _log.severe("Failed to start broadcasting: $e\n$s");
       }
     }
   }
@@ -175,30 +178,32 @@ class _AppState extends State<App> implements NearbyEventsListener {
     _appSystemTray?.updateDeviceName(newName);
 
     try {
-      print("Restarting broadcast with new name: $newName");
+      _log.info("Restarting broadcast with new name: $newName");
       await _manager.stopBroadcasting();
       await _manager.startBroadcasting(newName);
     } catch (e, s) {
-      print("Error restarting broadcast after name change: $e\n$s");
+      _log.severe("Error restarting broadcast after name change: $e\n$s");
     }
   }
 
   @override
   void onDeviceFound(RemoteDeviceInfo device) {
-    print("UI Listener: Device Found - ${device.name} (${device.id})");
+    _log.info("UI Listener: Device Found - ${device.name} (${device.id})");
     setState(() {});
     if (device.qrMatched &&
         _outgoingFilePaths.isNotEmpty &&
         _outgoingConnectionId == null &&
         _outgoingTargetDeviceId == null) {
-      print("UI Listener: QR-matched device ${device.id}; starting transfer");
+      _log.info(
+        "UI Listener: QR-matched device ${device.id}; starting transfer",
+      );
       unawaited(_sendSelectedFilesToDevice(device));
     }
   }
 
   @override
   void onDeviceLost(String deviceId) {
-    print("UI Listener: Device Lost - $deviceId");
+    _log.info("UI Listener: Device Lost - $deviceId");
     setState(() {});
   }
 
@@ -208,7 +213,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
     RemoteDeviceInfo device,
     String connectionId,
   ) {
-    print(
+    _log.info(
       "UI Listener: Incoming Transfer Request - ID: ${transfer.id} from ${device.name}",
     );
     final pendingTransfer = transfer.copyWith(id: connectionId);
@@ -220,14 +225,14 @@ class _AppState extends State<App> implements NearbyEventsListener {
     });
     unawaited(
       showTransferNotification(pendingTransfer, device).catchError((e, s) {
-        print("Failed to show transfer notification: $e\n$s");
+        _log.severe("Failed to show transfer notification: $e\n$s");
       }),
     );
   }
 
   @override
   void onTransferFinished(String connectionId, bool success, Exception? error) {
-    print(
+    _log.info(
       "UI Listener: Transfer Finished - ID: $connectionId, Success: $success, Error: $error",
     );
     var stopOutgoingDiscovery = false;
@@ -277,7 +282,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
 
   @override
   void onOutgoingTransferStarted(String deviceId, String connectionId) {
-    print(
+    _log.info(
       "UI Listener: Outgoing Transfer Started - DeviceID: $deviceId, ConnID: $connectionId",
     );
     setState(() {
@@ -300,7 +305,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
 
   @override
   void onOutgoingPinAvailable(String connectionId, String pin) {
-    print("UI Listener: Outgoing PIN - ConnID: $connectionId, PIN: $pin");
+    _log.info("UI Listener: Outgoing PIN - ConnID: $connectionId, PIN: $pin");
     if (connectionId != _outgoingConnectionId) return;
     setState(() {
       _outgoingPin = pin;
@@ -345,7 +350,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
     try {
       await revealFileInFileManager(localPath);
     } catch (e, s) {
-      print('Failed to show received file in file manager: $e\n$s');
+      _log.severe('Failed to show received file in file manager: $e\n$s');
     }
   }
 
@@ -356,7 +361,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
     try {
       await openFileWithDefaultApp(localPath);
     } catch (e, s) {
-      print('Failed to open received file: $e\n$s');
+      _log.severe('Failed to open received file: $e\n$s');
     }
   }
 
@@ -370,7 +375,9 @@ class _AppState extends State<App> implements NearbyEventsListener {
   void _handleNotificationAction(String connectionId, bool accepted) {
     unawaited(
       _respondToPendingTransfer(connectionId, accepted).catchError((e, s) {
-        print("Failed to handle notification action for $connectionId: $e\n$s");
+        _log.severe(
+          "Failed to handle notification action for $connectionId: $e\n$s",
+        );
       }),
     );
   }
@@ -381,7 +388,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
       final files = await openFiles();
       await _startOutgoingFileSelection(files.map((file) => file.path));
     } catch (e, s) {
-      print('Failed to pick outgoing files: $e\n$s');
+      _log.severe('Failed to pick outgoing files: $e\n$s');
       if (!mounted) return;
       setState(() {
         _outgoingStatus = 'Could not open file picker';
@@ -415,7 +422,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
     try {
       await _manager.startDiscovery();
     } catch (e, s) {
-      print('Failed to start discovery for outgoing transfer: $e\n$s');
+      _log.severe('Failed to start discovery for outgoing transfer: $e\n$s');
       if (!mounted) return;
       setState(() {
         _outgoingStatus = 'Could not start discovery';
@@ -451,7 +458,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
       await _manager.initiateTransfer(device.id, List.of(_outgoingFilePaths));
       await _manager.stopDiscovery();
     } catch (e, s) {
-      print('Failed to start outgoing transfer: $e\n$s');
+      _log.severe('Failed to start outgoing transfer: $e\n$s');
       if (!mounted) return;
       setState(() {
         _outgoingStatus = 'Could not start transfer';

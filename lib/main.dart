@@ -6,6 +6,7 @@ import 'package:crossdrop/app/mobile_app.dart';
 import 'package:crossdrop/app/notification_actions.dart';
 import 'package:crossdrop/app/window_setup.dart';
 import 'package:crossdrop/app_theme.dart';
+import 'package:crossdrop/logging_config.dart';
 import 'package:crossdrop/nearby_share/manager/nearby_manager.dart';
 import 'package:crossdrop/notifications.dart';
 import 'package:flutter/widgets.dart';
@@ -13,6 +14,7 @@ import 'package:provider/provider.dart';
 
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  setupLogging();
 
   final initialOutgoingFilePaths = filePathsFromArgs(args);
   final useMobileShell = Platform.isIOS || Platform.isAndroid;

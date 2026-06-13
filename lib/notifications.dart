@@ -1,6 +1,9 @@
 import 'dart:convert'; // For jsonEncode/Decode
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:crossdrop/nearby_share/api/models.dart'; // For TransferMetadata
+import 'package:logging/logging.dart';
+
+final Logger _log = Logger('notifications');
 
 const String channelId = 'nearby_share_channel';
 const String channelName = 'Nearby Share Transfers';
@@ -215,7 +218,7 @@ void onDidReceiveNotificationResponse(
 ) async {
   final String? payload = notificationResponse.payload;
   final String? actionId = notificationResponse.actionId;
-  print('Notification response: action="$actionId", payload="$payload"');
+  _log.info('Notification response: action="$actionId", payload="$payload"');
 
   if (payload != null && actionId != null) {
     try {
@@ -223,13 +226,13 @@ void onDidReceiveNotificationResponse(
       final connectionId = data['connectionId'] as String?;
       if (connectionId != null) {
         final accepted = actionId == 'ACCEPT';
-        print(
+        _log.info(
           'Calling notification action callback for $connectionId, accepted: $accepted',
         );
         _onNotificationAction?.call(connectionId, accepted);
       }
     } catch (e) {
-      print('Error decoding notification payload: $e');
+      _log.severe('Error decoding notification payload: $e');
     }
   }
 }
@@ -240,7 +243,7 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
   // This runs in a separate isolate. Basic handling is possible,
   // but complex state updates require inter-isolate communication.
   // For simplicity, we'll primarily rely on onDidReceiveNotificationResponse.
-  print(
+  _log.info(
     'Notification tapped from background/terminated state: ${notificationResponse.payload}',
   );
   // Potentially store the payload/action and process when the main app starts.

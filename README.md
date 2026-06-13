@@ -19,6 +19,64 @@ The app lives in your menu bar and saves files to your downloads folder.
 
 📈 Since this project has gotten more attention, I will try very hard to release a working version as soon as possible. While much of the UI is ready so far, I'm currently working on the Quick Share feature itself. After that, I still need to implement notifications.
 
+## Installing
+
+> [!WARNING]
+> Builds are **pre-release** and intended for testing only (see the warning above).
+
+Grab the latest build from the [Releases](https://github.com/Medformatik/CrossDrop/releases) page.
+
+### macOS
+
+- **Homebrew** (once published to the tap):
+
+  ```sh
+  brew install --cask Medformatik/tap/crossdrop
+  ```
+
+- **Manual:** download `CrossDrop-<version>-macos-universal.zip`, unzip, and move `CrossDrop.app` to `/Applications`.
+
+Published release builds are signed with a Developer ID and notarized by Apple, so Gatekeeper opens them without warnings. Locally built (unsigned) apps require a right-click → **Open**, or `xattr -dr com.apple.quarantine CrossDrop.app`.
+
+### Linux
+
+- **AppImage:** download `CrossDrop-<version>-linux-x86_64.AppImage`, then `chmod +x` it and run.
+- **Tarball:** download `CrossDrop-<version>-linux-x64.tar.gz`, extract it, and run `./CrossDrop`.
+
+### iOS
+
+No public distribution yet — build and run from source (see below).
+
+## Building from source
+
+Requires the [Flutter SDK](https://docs.flutter.dev/get-started/install) **3.44.2 or newer**.
+
+```sh
+git clone https://github.com/Medformatik/CrossDrop.git
+cd CrossDrop
+flutter pub get
+```
+
+Run in development:
+
+```sh
+flutter run -d macos   # or: -d linux
+```
+
+Build release binaries:
+
+```sh
+flutter build macos --release    # → build/macos/Build/Products/Release/CrossDrop.app
+flutter build linux --release    # → build/linux/x64/release/bundle/
+flutter build ios --release      # requires an Apple Developer account for signing
+```
+
+On Linux, install the build toolchain first:
+
+```sh
+sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+```
+
 ## Limitations
 
 * **Receive only**. For now. I haven't yet figured out how to make Android turn on the MDNS service and/or show the "a device nearby is sharing" notification.
@@ -28,6 +86,8 @@ The app lives in your menu bar and saves files to your downloads folder.
 ## Contributing
 
 Contributions are welcome! Please open an issue or a pull request.
+
+CI (`.github/workflows/ci.yml`) formats, analyzes, and tests on every push and pull request, then compiles the macOS, Linux, and iOS apps. Pushing a `v*` tag triggers `.github/workflows/release.yml`, which builds a signed + notarized macOS app and packaged Linux artifacts (AppImage + tarball) and attaches them to a GitHub Release.
 
 ## FAQ
 
