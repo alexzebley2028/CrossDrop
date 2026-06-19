@@ -3,15 +3,9 @@
 > [!IMPORTANT]
 > This repository is back in an experimental continuation state on `main`. [Google has announced official compatibility between Quick Share and AirDrop](https://blog.google/products/android/quick-share-airdrop/), so this project may no longer be necessary for everyday use, but the codebase remains available.
 
-**CrossDrop** is a partial implementation of [Google's Quick Share](https://blog.google/products/android/how-to-use-quick-share-android/) in Flutter for macOS, iOS and Linux.
+**CrossDrop** is a partial implementation of [Google's Quick Share](https://blog.google/products/android/how-to-use-quick-share-android/) in Flutter for macOS, iOS and Linux. The app lives in your menu bar and saves files to your downloads folder.
 
-CrossDrop is based on [NearDrop](https://github.com/grishka/NearDrop), a Swift implementation of Nearby Share for macOS.
-
-[Protocol documentation](https://github.com/grishka/NearDrop/blob/master/PROTOCOL.md) is available in the NearDrop repository.
-
-The app lives in your menu bar and saves files to your downloads folder.
-
-ℹ️ Getting CrossDrop to work on iOS has the least priority, first getting it to work on macOS and Linux is the goal.
+CrossDrop is based on [NearDrop](https://github.com/grishka/NearDrop), a Swift implementation of Nearby Share for macOS. [Protocol documentation](https://github.com/grishka/NearDrop/blob/master/PROTOCOL.md) is available in the NearDrop repository.
 
 ## Screenshots
 
@@ -22,6 +16,9 @@ The app lives in your menu bar and saves files to your downloads folder.
 ## Installing
 
 Grab the latest build from the [Releases](https://github.com/Medformatik/CrossDrop/releases) page.
+
+> [!NOTE]
+> I'm currently in the process of joining the Apple Developer Program so that CrossDrop can be released for macOS (signed and notarized), and possibly later for iOS/iPadOS as well.
 
 ### macOS
 
