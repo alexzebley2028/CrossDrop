@@ -13,6 +13,12 @@ The app lives in your menu bar and saves files to your downloads folder.
 
 ℹ️ Getting CrossDrop to work on iOS has the least priority, first getting it to work on macOS and Linux is the goal.
 
+## Screenshots
+
+| Receiving | Sending |
+| :---: | :---: |
+| <img src="docs/screenshots/receiving.png" width="300" alt="CrossDrop menu-bar popover, ready to receive files"> | <img src="docs/screenshots/sending.png" width="300" alt="CrossDrop sending a file, showing a QR code to scan from Quick Share"> |
+
 ## Installing
 
 Grab the latest build from the [Releases](https://github.com/Medformatik/CrossDrop/releases) page.
