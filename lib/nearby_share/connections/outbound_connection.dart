@@ -53,6 +53,7 @@ abstract class OutboundNearbyConnectionDelegate {
 class OutboundNearbyConnection extends NearbyConnection {
   OutboundState _currentState = OutboundState.initial;
   final List<String> _urlsToSend; // List of file paths or a single non-file URL
+  final String? _outgoingText; // Explicit text/URL payload, when sending text
   final String _endpointId;
   final QuickShareQrCode? _quickShareQrCode;
   Uint8List? _ukeyClientFinishMsgData;
@@ -72,13 +73,30 @@ class OutboundNearbyConnection extends NearbyConnection {
     List<String> urlsToSend, {
     required String endpointId,
     QuickShareQrCode? quickShareQrCode,
+    String? outgoingText,
   }) : _urlsToSend = urlsToSend,
+       _outgoingText = outgoingText,
        _endpointId = endpointId,
        _quickShareQrCode = quickShareQrCode {
-    if (urlsToSend.length == 1 && !File(urlsToSend[0]).existsSync()) {
-      // Heuristic for non-file URL
+    // Text mode is determined solely by an explicit text payload. (Previously a
+    // single non-existent path in the file list was treated as text, which
+    // silently sent a filesystem-path string when a selected file had moved.)
+    if (outgoingText != null && outgoingText.isNotEmpty) {
       _textPayloadID = generatePositivePayloadId();
     }
+  }
+
+  /// The text/URL to send, when in text mode.
+  String? get _textContent => _outgoingText;
+
+  static bool _looksLikeUrl(String text) {
+    final uri = Uri.tryParse(text.trim());
+    return uri != null &&
+        uri.hasScheme &&
+        (uri.isScheme('http') ||
+            uri.isScheme('https') ||
+            uri.isScheme('mailto') ||
+            uri.isScheme('tel'));
   }
 
   @override
@@ -547,17 +565,27 @@ class OutboundNearbyConnection extends NearbyConnection {
     _transferQueue = [];
 
     if (_textPayloadID != 0) {
-      // Single non-file URL case
-      final urlString = _urlsToSend[0];
-      final uri = Uri.tryParse(urlString);
+      // Text or URL payload.
+      final text = _textContent ?? '';
+      final isUrl = _looksLikeUrl(text);
+      final uri = Uri.tryParse(text);
+      final String title;
+      if (isUrl && (uri?.host.isNotEmpty ?? false)) {
+        title = uri!.host;
+      } else if (isUrl) {
+        title = 'Link';
+      } else {
+        title = text.length > 32 ? '${text.substring(0, 32)}…' : text;
+      }
+      final byteLength = utf8.encode(text).length;
       final textMeta = wire.TextMetadata(
-        type: wire.TextMetadata_Type.URL,
-        textTitle: uri?.host ?? "URL",
-        size: Int64(urlString.length),
+        type: isUrl ? wire.TextMetadata_Type.URL : wire.TextMetadata_Type.TEXT,
+        textTitle: title,
+        size: Int64(byteLength),
         payloadId: Int64(_textPayloadID),
       );
       introduction.textMetadata.add(textMeta);
-      _totalBytesToSend = urlString.length; // Only the text bytes
+      _totalBytesToSend = byteLength; // Only the text bytes
     } else {
       // File transfer case
       for (final url in _urlsToSend) {
@@ -633,7 +661,7 @@ class OutboundNearbyConnection extends NearbyConnection {
       Future.microtask(() => delegate?.outboundTransferAccepted(this));
 
       if (_textPayloadID != 0) {
-        await _sendUrlPayload();
+        await _sendTextPayload();
       } else {
         await _sendNextFileChunk();
       }
@@ -650,14 +678,14 @@ class OutboundNearbyConnection extends NearbyConnection {
     }
   }
 
-  Future<void> _sendUrlPayload() async {
+  Future<void> _sendTextPayload() async {
     if (_cancelled) return;
-    _log.info("Outbound $id: Sending URL payload.");
+    _log.info("Outbound $id: Sending text payload.");
     await sendBytesPayload(
-      data: utf8.encode(_urlsToSend[0]),
+      data: utf8.encode(_textContent ?? ''),
       payloadId: _textPayloadID,
     );
-    _log.info("Outbound $id: URL payload sent.");
+    _log.info("Outbound $id: Text payload sent.");
     _awaitingRemoteCompletion = true;
     await sendDisconnectionAndDisconnect(
       waitForRemoteClose: true,

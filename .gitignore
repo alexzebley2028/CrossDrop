@@ -45,4 +45,4 @@ app.*.map.json
 /android/app/release
 
 # Local-only publishing notes (not tracked)
-docs/publishing.md
+docs/*.md

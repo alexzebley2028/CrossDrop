@@ -128,6 +128,51 @@ class TransferMetadata {
   });
 }
 
+/// The kind of a received non-file payload (text, URL, or Wi-Fi credentials).
+enum ReceivedPayloadKind { url, text, wifi }
+
+/// A non-file payload received from a sender (text, a URL, or Wi-Fi
+/// credentials). Surfaced to the UI so the user can copy or act on it, rather
+/// than being auto-opened or silently written to disk.
+class ReceivedPayload {
+  final ReceivedPayloadKind kind;
+
+  /// A short human-friendly label (e.g. a URL host or text title).
+  final String? title;
+
+  /// The text content for [ReceivedPayloadKind.text] / [ReceivedPayloadKind.url].
+  final String? text;
+
+  /// The network name for [ReceivedPayloadKind.wifi].
+  final String? wifiSsid;
+
+  /// The password for [ReceivedPayloadKind.wifi], when present.
+  final String? wifiPassword;
+
+  /// A human-readable security type for [ReceivedPayloadKind.wifi].
+  final String? wifiSecurityType;
+
+  const ReceivedPayload({
+    required this.kind,
+    this.title,
+    this.text,
+    this.wifiSsid,
+    this.wifiPassword,
+    this.wifiSecurityType,
+  });
+
+  /// The single best string to place on the clipboard for this payload.
+  String? get clipboardValue {
+    switch (kind) {
+      case ReceivedPayloadKind.url:
+      case ReceivedPayloadKind.text:
+        return text;
+      case ReceivedPayloadKind.wifi:
+        return wifiPassword ?? wifiSsid;
+    }
+  }
+}
+
 // Corresponds to Swift's EndpointInfo
 class EndpointInfo {
   final String name;

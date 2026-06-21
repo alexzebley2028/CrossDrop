@@ -166,6 +166,39 @@ Future<void> showTransferNotification(
   );
 }
 
+/// Shown when a nearby device is detected starting a share while CrossDrop was
+/// hidden, and CrossDrop has made itself briefly discoverable in response.
+Future<void> showNearbySharingNotification() async {
+  const AndroidNotificationDetails androidPlatformChannelSpecifics =
+      AndroidNotificationDetails(
+        channelId,
+        channelName,
+        channelDescription: channelDescription,
+        importance: Importance.high,
+        priority: Priority.high,
+        ticker: 'ticker',
+      );
+  const DarwinNotificationDetails darwinDetails = DarwinNotificationDetails(
+    presentAlert: true,
+    presentSound: true,
+  );
+  const LinuxNotificationDetails linuxDetails = LinuxNotificationDetails();
+
+  const NotificationDetails platformChannelSpecifics = NotificationDetails(
+    android: androidPlatformChannelSpecifics,
+    iOS: darwinDetails,
+    macOS: darwinDetails,
+    linux: linuxDetails,
+  );
+
+  await flutterLocalNotificationsPlugin.show(
+    id: 'nearby_sharing'.hashCode % 2147483647,
+    title: 'Someone is sharing nearby',
+    body: 'CrossDrop is visible for a minute so they can find you.',
+    notificationDetails: platformChannelSpecifics,
+  );
+}
+
 Future<void> showErrorNotification(
   String connectionId,
   RemoteDeviceInfo? device,

@@ -28,12 +28,18 @@
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>CrossDrop uses Bluetooth to notice when a nearby device starts sharing, so it can become discoverable while otherwise hidden.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_FC9F5ED42C8A._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>CrossDrop discovers and connects to nearby devices on your local network for Quick Share transfers.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-central</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

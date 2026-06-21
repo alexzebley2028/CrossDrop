@@ -26,6 +26,9 @@ class OutgoingSendButton extends StatelessWidget {
 
 class OutgoingSendPanel extends StatelessWidget {
   final List<String> outgoingFilePaths;
+
+  /// When sending text/URL instead of files, a label describing the content.
+  final String? outgoingTextLabel;
   final String? status;
   final String? pin;
   final double? progress;
@@ -42,6 +45,7 @@ class OutgoingSendPanel extends StatelessWidget {
   const OutgoingSendPanel({
     super.key,
     required this.outgoingFilePaths,
+    this.outgoingTextLabel,
     required this.status,
     required this.pin,
     required this.progress,
@@ -58,7 +62,10 @@ class OutgoingSendPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedFilesLabel = outgoingFilePaths.length == 1
+    final isText = outgoingTextLabel != null;
+    final selectedFilesLabel = isText
+        ? outgoingTextLabel!
+        : outgoingFilePaths.length == 1
         ? p.basename(outgoingFilePaths.single)
         : '${outgoingFilePaths.length} files selected';
     final theme = Theme.of(context);
@@ -82,7 +89,7 @@ class OutgoingSendPanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.file_present, size: 18),
+              Icon(isText ? Icons.notes : Icons.file_present, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(

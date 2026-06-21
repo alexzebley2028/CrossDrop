@@ -7,17 +7,20 @@ import 'package:crossdrop/app/notification_actions.dart';
 import 'package:crossdrop/app/pending_transfer.dart';
 import 'package:crossdrop/app/reveal_file.dart';
 import 'package:crossdrop/app/transfer_metadata_extensions.dart';
-import 'package:crossdrop/app/widgets/device_name_field.dart';
+import 'package:crossdrop/app/widgets/device_name_notice.dart';
 import 'package:crossdrop/app/widgets/outgoing_send_section.dart';
 import 'package:crossdrop/app/widgets/receive_status_header.dart';
+import 'package:crossdrop/app/widgets/send_text_dialog.dart';
+import 'package:crossdrop/app/widgets/settings_panel.dart';
 import 'package:crossdrop/app/widgets/transfer_request_panel.dart';
 import 'package:crossdrop/app/window_setup.dart';
 import 'package:crossdrop/app_config.dart';
 import 'package:crossdrop/app_theme.dart';
-import 'package:crossdrop/device.dart';
 import 'package:crossdrop/nearby_share/api/models.dart';
 import 'package:crossdrop/nearby_share/manager/nearby_manager.dart';
 import 'package:crossdrop/notifications.dart';
+import 'package:crossdrop/settings/receive_visibility.dart';
+import 'package:crossdrop/settings/settings_controller.dart';
 import 'package:crossdrop/window/system_tray.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -39,15 +42,16 @@ class App extends StatefulWidget {
 }
 
 class _AppState extends State<App> implements NearbyEventsListener {
-  final TextEditingController _deviceNameController = TextEditingController();
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final Map<String, PendingTransfer> _pendingTransfers = {};
   final List<String> _outgoingFilePaths = [];
 
   late final FileIntentController _fileIntentController;
   late NearbyConnectionManager _manager;
+  SettingsController? _settings;
 
   AppSystemTray? _appSystemTray;
-  bool _isTextFieldEditing = false;
+  String? _broadcastName;
   bool _nearbyInitialized = false;
   String? _outgoingConnectionId;
   String? _outgoingTargetDeviceId;
@@ -57,6 +61,10 @@ class _AppState extends State<App> implements NearbyEventsListener {
   double? _outgoingProgress;
   Exception? _outgoingError;
   bool _isPickingOutgoingFiles = false;
+  String? _outgoingText;
+
+  bool get _hasOutgoingSelection =>
+      _outgoingFilePaths.isNotEmpty || _outgoingText != null;
 
   int _currentShapeIndex = 0;
   Timer? _animationTimer;
@@ -73,6 +81,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
     _fileIntentController = FileIntentController(
       initialFilePaths: widget.initialOutgoingFilePaths,
       onOpenFiles: _startOutgoingFileSelection,
+      onShareText: _startOutgoingTextSend,
     );
     _fileIntentController.start();
     _triggerNextAnimationFrame();
@@ -82,6 +91,12 @@ class _AppState extends State<App> implements NearbyEventsListener {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _manager = context.read<NearbyConnectionManager>();
+    final settings = context.read<SettingsController>();
+    if (!identical(settings, _settings)) {
+      _settings?.removeListener(_onSettingsChanged);
+      _settings = settings;
+      settings.addListener(_onSettingsChanged);
+    }
     registerNotificationActionHandler(_handleNotificationAction);
     if (_nearbyInitialized) return;
     _nearbyInitialized = true;
@@ -90,23 +105,89 @@ class _AppState extends State<App> implements NearbyEventsListener {
   }
 
   Future<void> _initNearby() async {
-    final currentDeviceName = await getDeviceName();
-    if (mounted) {
-      setState(() {
-        _deviceNameController.text = currentDeviceName;
-      });
-      _appSystemTray = AppSystemTray(currentDeviceName);
-      try {
-        await _appSystemTray?.initSystemTray();
-      } catch (e, s) {
-        _log.severe("Failed to initialize system tray: $e\n$s");
+    if (!mounted) return;
+    final settings = _settings;
+    _appSystemTray = AppSystemTray(
+      deviceName: settings?.deviceName ?? '',
+      visibility: settings?.visibility ?? ReceiveVisibility.everyone,
+      onSetVisibility: (visibility) =>
+          unawaited(_settings?.setVisibility(visibility) ?? Future.value()),
+      onOpen: () => _showMenuBarPanel(),
+    );
+    try {
+      await _appSystemTray?.initSystemTray();
+    } catch (e, s) {
+      _log.severe("Failed to initialize system tray: $e\n$s");
+    }
+    await _reconcileBroadcast();
+    await _reconcileScanning();
+  }
+
+  void _onSettingsChanged() {
+    final settings = _settings;
+    if (settings == null) return;
+    unawaited(_appSystemTray?.updateVisibility(settings.visibility));
+    unawaited(_appSystemTray?.updateDeviceName(settings.deviceName));
+    unawaited(_reconcileBroadcast());
+    unawaited(_reconcileScanning());
+  }
+
+  /// Scans for nearby senders only while hidden, so CrossDrop can "wake" and
+  /// briefly become discoverable on demand instead of staying unreachable.
+  Future<void> _reconcileScanning() async {
+    final settings = _settings;
+    if (settings == null) return;
+    try {
+      if (settings.visibility == ReceiveVisibility.hidden) {
+        await _manager.startNearbyShareScanning();
+      } else {
+        await _manager.stopNearbyShareScanning();
       }
-      try {
-        _log.info("Starting broadcasting with name: $currentDeviceName");
-        await _manager.startBroadcasting(currentDeviceName);
-      } catch (e, s) {
-        _log.severe("Failed to start broadcasting: $e\n$s");
+    } catch (e, s) {
+      _log.severe("Failed to reconcile nearby-share scanning: $e\n$s");
+    }
+  }
+
+  @override
+  void onNearbySharingDetected() {
+    final settings = _settings;
+    if (settings == null || settings.visibility != ReceiveVisibility.hidden) {
+      return;
+    }
+    _log.info("Nearby device sharing: waking to temporary visibility");
+    unawaited(settings.setVisibility(ReceiveVisibility.temporary));
+    unawaited(
+      showNearbySharingNotification().catchError((e, s) {
+        _log.severe("Failed to show nearby-sharing notification: $e\n$s");
+      }),
+    );
+  }
+
+  /// Starts, stops, or restarts the mDNS broadcast so it matches the current
+  /// visibility and device name.
+  Future<void> _reconcileBroadcast() async {
+    final settings = _settings;
+    if (settings == null) return;
+    final name = settings.deviceName;
+    try {
+      if (settings.shouldBroadcast) {
+        if (_manager.isBroadcasting && _broadcastName != name) {
+          _log.info("Reconcile: restarting broadcast as $name");
+          await _manager.stopBroadcasting();
+          await _manager.startBroadcasting(name);
+          _broadcastName = name;
+        } else if (!_manager.isBroadcasting) {
+          _log.info("Reconcile: starting broadcast as $name");
+          await _manager.startBroadcasting(name);
+          _broadcastName = name;
+        }
+      } else if (_manager.isBroadcasting) {
+        _log.info("Reconcile: stopping broadcast (visibility hidden)");
+        await _manager.stopBroadcasting();
+        _broadcastName = null;
       }
+    } catch (e, s) {
+      _log.severe("Failed to reconcile broadcast: $e\n$s");
     }
   }
 
@@ -154,36 +235,15 @@ class _AppState extends State<App> implements NearbyEventsListener {
 
   @override
   void dispose() {
-    _deviceNameController.dispose();
     _animationTimer?.cancel();
+    _settings?.removeListener(_onSettingsChanged);
     registerNotificationActionHandler(null);
     _fileIntentController.dispose();
     _manager.removeNearbyListener(this);
     unawaited(_manager.stopBroadcasting());
     unawaited(_manager.stopDiscovery());
+    unawaited(_manager.stopNearbyShareScanning());
     super.dispose();
-  }
-
-  Future<void> _saveDeviceName() async {
-    if (!mounted) return;
-    FocusScope.of(context).unfocus();
-    setState(() => _isTextFieldEditing = false);
-    final newName = _deviceNameController.text;
-    if (newName.isEmpty) {
-      final oldName = await getDeviceName();
-      _deviceNameController.text = oldName;
-      return;
-    }
-    await setDeviceName(newName);
-    _appSystemTray?.updateDeviceName(newName);
-
-    try {
-      _log.info("Restarting broadcast with new name: $newName");
-      await _manager.stopBroadcasting();
-      await _manager.startBroadcasting(newName);
-    } catch (e, s) {
-      _log.severe("Error restarting broadcast after name change: $e\n$s");
-    }
   }
 
   @override
@@ -191,7 +251,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
     _log.info("UI Listener: Device Found - ${device.name} (${device.id})");
     setState(() {});
     if (device.qrMatched &&
-        _outgoingFilePaths.isNotEmpty &&
+        _hasOutgoingSelection &&
         _outgoingConnectionId == null &&
         _outgoingTargetDeviceId == null) {
       _log.info(
@@ -276,6 +336,17 @@ class _AppState extends State<App> implements NearbyEventsListener {
       _pendingTransfers[connectionId] = transfer.copyWith(
         status: PendingTransferStatus.receiving,
         progress: progress.clamp(0, 1).toDouble(),
+      );
+    });
+  }
+
+  @override
+  void onInboundTextReceived(String connectionId, ReceivedPayload payload) {
+    final transfer = _pendingTransfers[connectionId];
+    if (transfer == null) return;
+    setState(() {
+      _pendingTransfers[connectionId] = transfer.copyWith(
+        receivedPayload: payload,
       );
     });
   }
@@ -407,18 +478,62 @@ class _AppState extends State<App> implements NearbyEventsListener {
     if (!mounted) return;
 
     setState(() {
+      _outgoingText = null;
       _outgoingFilePaths
         ..clear()
         ..addAll(filePaths);
-      _outgoingConnectionId = null;
-      _outgoingTargetDeviceId = null;
-      _outgoingTargetDevice = null;
+      _resetOutgoingProgressState();
       _outgoingStatus = 'Looking for nearby devices...';
-      _outgoingPin = null;
-      _outgoingProgress = null;
-      _outgoingError = null;
     });
 
+    await _beginOutgoingDiscovery();
+  }
+
+  Future<void> _composeAndSendText() async {
+    final text = await _promptForText();
+    if (text == null || text.trim().isEmpty) return;
+    await _startOutgoingTextSend(text);
+  }
+
+  /// Begins sending [text] (e.g. from the macOS "Send text" service or the
+  /// compose dialog): shows the panel and starts discovery.
+  Future<void> _startOutgoingTextSend(String text) async {
+    if (text.trim().isEmpty) return;
+    await _showMenuBarPanel(targetSize: outgoingWindowSize);
+    if (!mounted) return;
+
+    setState(() {
+      _outgoingFilePaths.clear();
+      _outgoingText = text.trim();
+      _resetOutgoingProgressState();
+      _outgoingStatus = 'Looking for nearby devices...';
+    });
+
+    await _beginOutgoingDiscovery();
+  }
+
+  Future<String?> _promptForText() async {
+    final navContext = _navigatorKey.currentContext;
+    if (navContext == null || !navContext.mounted) return null;
+    return promptForSendText(navContext);
+  }
+
+  String _outgoingTextLabel(String text) {
+    final single = text.replaceAll('\n', ' ').trim();
+    final preview = single.length > 40 ? '${single.substring(0, 40)}…' : single;
+    return 'Text: $preview';
+  }
+
+  void _resetOutgoingProgressState() {
+    _outgoingConnectionId = null;
+    _outgoingTargetDeviceId = null;
+    _outgoingTargetDevice = null;
+    _outgoingPin = null;
+    _outgoingProgress = null;
+    _outgoingError = null;
+  }
+
+  Future<void> _beginOutgoingDiscovery() async {
     try {
       await _manager.startDiscovery();
     } catch (e, s) {
@@ -444,7 +559,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
   }
 
   Future<void> _sendSelectedFilesToDevice(RemoteDeviceInfo device) async {
-    if (_outgoingFilePaths.isEmpty || _outgoingConnectionId != null) return;
+    if (!_hasOutgoingSelection || _outgoingConnectionId != null) return;
     setState(() {
       _outgoingTargetDeviceId = device.id;
       _outgoingTargetDevice = device;
@@ -455,7 +570,12 @@ class _AppState extends State<App> implements NearbyEventsListener {
     });
 
     try {
-      await _manager.initiateTransfer(device.id, List.of(_outgoingFilePaths));
+      final text = _outgoingText;
+      if (text != null) {
+        await _manager.initiateTextTransfer(device.id, text);
+      } else {
+        await _manager.initiateTransfer(device.id, List.of(_outgoingFilePaths));
+      }
       await _manager.stopDiscovery();
     } catch (e, s) {
       _log.severe('Failed to start outgoing transfer: $e\n$s');
@@ -474,25 +594,33 @@ class _AppState extends State<App> implements NearbyEventsListener {
     if (!mounted) return;
     setState(() {
       _outgoingFilePaths.clear();
-      _outgoingConnectionId = null;
-      _outgoingTargetDeviceId = null;
-      _outgoingTargetDevice = null;
+      _outgoingText = null;
       _outgoingStatus = null;
-      _outgoingPin = null;
-      _outgoingProgress = null;
-      _outgoingError = null;
+      _resetOutgoingProgressState();
     });
+  }
+
+  Future<void> _openSettings() async {
+    await _showMenuBarPanel();
+    if (!mounted) return;
+    // Use a context below the MaterialApp (the Navigator) so the modal has
+    // MaterialLocalizations and a Navigator ancestor.
+    final navContext = _navigatorKey.currentContext;
+    if (navContext == null || !navContext.mounted) return;
+    await showSettingsSheet(navContext);
   }
 
   @override
   Widget build(BuildContext context) {
     final manager = context.watch<NearbyConnectionManager>();
     final appTheme = context.watch<AppTheme>();
+    final settings = context.watch<SettingsController>();
     final showReceiveStatus =
-        _outgoingFilePaths.isEmpty && _pendingTransfers.isEmpty;
+        !_hasOutgoingSelection && _pendingTransfers.isEmpty;
 
     return MaterialApp(
       title: AppConfig.name,
+      navigatorKey: _navigatorKey,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: appThemeSeedColor),
       ),
@@ -513,10 +641,12 @@ class _AppState extends State<App> implements NearbyEventsListener {
               children: [
                 ReceiveStatusHeader(
                   isBroadcasting: manager.isBroadcasting,
+                  visibility: settings.visibility,
                   showReceiveStatus: showReceiveStatus,
                   shapeIndex: _currentShapeIndex,
                   opacity: _opacity,
                   animationDuration: _currentAnimationDuration,
+                  onOpenSettings: () => unawaited(_openSettings()),
                 ),
                 const SizedBox(height: 20),
                 Expanded(
@@ -524,9 +654,12 @@ class _AppState extends State<App> implements NearbyEventsListener {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (_outgoingFilePaths.isNotEmpty)
+                        if (_hasOutgoingSelection)
                           OutgoingSendPanel(
                             outgoingFilePaths: _outgoingFilePaths,
+                            outgoingTextLabel: _outgoingText == null
+                                ? null
+                                : _outgoingTextLabel(_outgoingText!),
                             status: _outgoingStatus,
                             pin: _outgoingPin,
                             progress: _outgoingProgress,
@@ -545,8 +678,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
                                 unawaited(_clearOutgoingSelection()),
                           ),
                         if (_pendingTransfers.isNotEmpty) ...[
-                          if (_outgoingFilePaths.isNotEmpty)
-                            const SizedBox(height: 20),
+                          if (_hasOutgoingSelection) const SizedBox(height: 20),
                           for (final entry in _pendingTransfers.entries)
                             TransferRequestPanel(
                               transfer: entry.value.metadata,
@@ -554,6 +686,7 @@ class _AppState extends State<App> implements NearbyEventsListener {
                               status: entry.value.status,
                               progress: entry.value.progress,
                               error: entry.value.error,
+                              receivedPayload: entry.value.receivedPayload,
                               onAccept: () => unawaited(
                                 _respondToPendingTransfer(entry.key, true),
                               ),
@@ -586,17 +719,29 @@ class _AppState extends State<App> implements NearbyEventsListener {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    OutgoingSendButton(
-                      isPickingOutgoingFiles: _isPickingOutgoingFiles,
-                      onPressed: () => unawaited(_pickOutgoingFiles()),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutgoingSendButton(
+                            isPickingOutgoingFiles: _isPickingOutgoingFiles,
+                            onPressed: () => unawaited(_pickOutgoingFiles()),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          onPressed: () => unawaited(_composeAndSendText()),
+                          icon: const Icon(Icons.notes),
+                          label: const Text('Text'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 48),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
-                    DeviceNameField(
-                      controller: _deviceNameController,
-                      isEditing: _isTextFieldEditing,
-                      onChanged: (_) =>
-                          setState(() => _isTextFieldEditing = true),
-                      onSave: () => unawaited(_saveDeviceName()),
+                    DeviceNameNotice(
+                      deviceName: settings.deviceName,
+                      visibility: settings.visibility,
                     ),
                   ],
                 ),

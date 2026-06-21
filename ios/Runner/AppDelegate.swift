@@ -1,3 +1,4 @@
+import CoreBluetooth
 import Flutter
 import QuickLook
 import UIKit
@@ -6,6 +7,8 @@ import UserNotifications
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, QLPreviewControllerDataSource {
   private var fileActionsChannel: FlutterMethodChannel?
+  private var bleScanChannel: FlutterMethodChannel?
+  private var nearbyShareScanner: NearbyShareBleScanner?
   private var previewFileURL: URL?
 
   override func application(
@@ -19,6 +22,30 @@ import UserNotifications
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     registerFileActionsChannel(engineBridge)
+    registerBleScanChannel(engineBridge)
+  }
+
+  private func registerBleScanChannel(_ engineBridge: FlutterImplicitEngineBridge) {
+    guard bleScanChannel == nil else { return }
+
+    let channel = FlutterMethodChannel(
+      name: "crossdrop/ble_scan",
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    let scanner = NearbyShareBleScanner(channel: channel)
+    nearbyShareScanner = scanner
+    channel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "start":
+        result(scanner.start())
+      case "stop":
+        scanner.stop()
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    bleScanChannel = channel
   }
 
   private func registerFileActionsChannel(_ engineBridge: FlutterImplicitEngineBridge) {
@@ -98,5 +125,79 @@ import UserNotifications
       return topViewController(from: presentedViewController)
     }
     return viewController
+  }
+}
+
+/// Scans for the Quick Share "Fast Init" BLE beacon a nearby device emits while
+/// starting a share, so a hidden CrossDrop can wake and briefly become
+/// discoverable. Scanning (central role) is permitted on iOS even though
+/// advertising custom service data is not.
+final class NearbyShareBleScanner: NSObject, CBCentralManagerDelegate {
+  // The 16-bit Quick Share service UUID (0xFE2C).
+  private let serviceUUID = CBUUID(string: "FE2C")
+  private weak var channel: FlutterMethodChannel?
+  private var central: CBCentralManager?
+  private var wantsScan = false
+  private var lastAlert = Date.distantPast
+
+  init(channel: FlutterMethodChannel) {
+    self.channel = channel
+    super.init()
+  }
+
+  /// Begins scanning. Returns true optimistically; the scan actually starts once
+  /// the Bluetooth radio reports `.poweredOn` (and the user grants permission).
+  func start() -> Bool {
+    wantsScan = true
+    if central == nil {
+      central = CBCentralManager(delegate: self, queue: nil)
+    } else {
+      startScanIfReady()
+    }
+    return true
+  }
+
+  func stop() {
+    wantsScan = false
+    central?.stopScan()
+  }
+
+  private func startScanIfReady() {
+    guard wantsScan, let central = central, central.state == .poweredOn else {
+      return
+    }
+    central.scanForPeripherals(
+      withServices: [serviceUUID],
+      options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
+    )
+  }
+
+  func centralManagerDidUpdateState(_ central: CBCentralManager) {
+    if central.state == .poweredOn {
+      startScanIfReady()
+    }
+  }
+
+  func centralManager(
+    _ central: CBCentralManager,
+    didDiscover peripheral: CBPeripheral,
+    advertisementData: [String: Any],
+    rssi RSSI: NSNumber
+  ) {
+    guard
+      let serviceData =
+        advertisementData[CBAdvertisementDataServiceDataKey] as? [CBUUID: Data],
+      serviceData[serviceUUID] != nil
+    else {
+      return
+    }
+
+    // Debounce: a sender advertises continuously, so wake at most once per 30s.
+    let now = Date()
+    if now.timeIntervalSince(lastAlert) <= 30 {
+      return
+    }
+    lastAlert = now
+    channel?.invokeMethod("onNearbySharing", arguments: nil)
   }
 }

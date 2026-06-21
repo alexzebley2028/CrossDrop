@@ -8,6 +8,7 @@ import 'package:crossdrop/nearby_share/connections/inbound_connection.dart';
 import 'package:crossdrop/nearby_share/connections/outbound_connection.dart';
 import 'package:crossdrop/nearby_share/crypto/quick_share_qr.dart';
 import 'package:crossdrop/nearby_share/platform/fast_init_advertiser.dart';
+import 'package:crossdrop/nearby_share/platform/nearby_share_scanner.dart';
 import 'package:crossdrop/nearby_share/utils/data_extension.dart';
 import 'package:flutter/foundation.dart'; // For ChangeNotifier
 import 'package:uuid/uuid.dart';
@@ -27,6 +28,15 @@ abstract class NearbyEventsListener {
   );
   void onTransferFinished(String connectionId, bool success, Exception? error);
   void onInboundTransferProgress(String connectionId, double progress);
+
+  /// A non-file payload (text, URL, or Wi-Fi credentials) was received on an
+  /// inbound connection and should be surfaced to the user.
+  void onInboundTextReceived(String connectionId, ReceivedPayload payload);
+
+  /// A nearby device was detected starting a share (via the BLE beacon) while
+  /// CrossDrop was hidden — an opportunity to "wake" and become discoverable.
+  void onNearbySharingDetected();
+
   void onOutgoingTransferStarted(String deviceId, String connectionId);
   void onOutgoingTransferProgress(String connectionId, double progress);
   void onOutgoingPinAvailable(String connectionId, String pin);
@@ -46,6 +56,8 @@ class NearbyConnectionManager extends ChangeNotifier
   BonsoirBroadcast? _bonsoirBroadcast;
   BonsoirDiscovery? _bonsoirDiscovery;
   final FastInitAdvertiser _fastInitAdvertiser = FastInitAdvertiser();
+  final NearbyShareScanner _nearbyShareScanner = NearbyShareScanner();
+  bool _scanningRequested = false;
 
   final String _endpointId = generateEndpointId();
   String? _deviceName;
@@ -245,6 +257,33 @@ class NearbyConnectionManager extends ChangeNotifier
 
   bool get isDiscovering => _isDiscovering;
   String? get discoveryQrCodeUrl => _discoveryQrCode?.url;
+
+  // --- Nearby-sharing BLE scan ("wake from hidden") ---
+  bool get isNearbyShareScannerSupported => _nearbyShareScanner.isSupported;
+  bool get isNearbyShareScanning => _scanningRequested;
+
+  /// Starts listening for nearby devices that begin a share, so a hidden
+  /// CrossDrop can become discoverable on demand. Idempotent.
+  Future<void> startNearbyShareScanning() async {
+    _nearbyShareScanner.onNearbySharingDetected = _handleNearbySharingDetected;
+    if (_scanningRequested) return;
+    _scanningRequested = true;
+    await _nearbyShareScanner.start();
+  }
+
+  Future<void> stopNearbyShareScanning() async {
+    if (!_scanningRequested) return;
+    _scanningRequested = false;
+    await _nearbyShareScanner.stop();
+  }
+
+  void _handleNearbySharingDetected() {
+    _log.info("Manager: nearby device is sharing (BLE beacon)");
+    for (var l in _nearbyListeners) {
+      l.onNearbySharingDetected();
+    }
+  }
+
   List<RemoteDeviceInfo> get discoveredDevices =>
       _discoveredDevices.values.where((d) => d.isResolved).toList();
 
@@ -253,16 +292,31 @@ class NearbyConnectionManager extends ChangeNotifier
     String endpointId,
     List<String> filePaths,
   ) async {
+    if (filePaths.isEmpty) {
+      throw ArgumentError("File paths list cannot be empty.");
+    }
+    await _startOutboundConnection(endpointId, filePaths: filePaths);
+  }
+
+  /// Sends a text or URL payload to a discovered device.
+  Future<void> initiateTextTransfer(String endpointId, String text) async {
+    if (text.trim().isEmpty) {
+      throw ArgumentError("Text to send cannot be empty.");
+    }
+    await _startOutboundConnection(endpointId, text: text);
+  }
+
+  Future<void> _startOutboundConnection(
+    String endpointId, {
+    List<String> filePaths = const [],
+    String? text,
+  }) async {
     final device = _discoveredDevices[endpointId];
 
     if (device == null || !device.isResolved) {
-      // Check if device exists and is resolved
       throw ArgumentError(
         "Device with ID $endpointId not found or not resolved.",
       );
-    }
-    if (filePaths.isEmpty) {
-      throw ArgumentError("File paths list cannot be empty.");
     }
 
     _log.info("Initiating transfer to ${device.name} ($endpointId)");
@@ -271,7 +325,6 @@ class NearbyConnectionManager extends ChangeNotifier
       (conn) => conn.remoteDeviceInfo?.id == endpointId,
     )) {
       _log.info("Outgoing connection to $endpointId already exists.");
-      // Optionally notify UI or just return
       return;
     }
 
@@ -293,6 +346,7 @@ class NearbyConnectionManager extends ChangeNotifier
         filePaths,
         endpointId: _endpointId,
         quickShareQrCode: _discoveryQrCode,
+        outgoingText: text,
       );
       connection.delegate = this;
       connection.remoteDeviceInfo = device;
@@ -306,7 +360,6 @@ class NearbyConnectionManager extends ChangeNotifier
       _log.severe("Failed to initiate transfer to $endpointId: $e\n$s");
       for (var l in _nearbyListeners) {
         // Notify failure if connection couldn't even start
-        // Need a way to map back to the UI element expecting this transfer
         l.onTransferFinished(
           endpointId,
           false,
@@ -528,6 +581,19 @@ class NearbyConnectionManager extends ChangeNotifier
   ) {
     for (var l in _nearbyListeners) {
       l.onInboundTransferProgress(connection.id, progress);
+    }
+  }
+
+  @override
+  void inboundPayloadReceived(
+    InboundNearbyConnection connection,
+    ReceivedPayload payload,
+  ) {
+    _log.info(
+      "Manager: Inbound payload received on ${connection.id}: ${payload.kind}",
+    );
+    for (var l in _nearbyListeners) {
+      l.onInboundTextReceived(connection.id, payload);
     }
   }
 

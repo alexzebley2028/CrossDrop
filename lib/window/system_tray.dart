@@ -3,14 +3,28 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:crossdrop/app/window_setup.dart';
+import 'package:crossdrop/settings/receive_visibility.dart';
 import 'package:screen_retriever/screen_retriever.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 
 class AppSystemTray {
-  final String _deviceName;
+  AppSystemTray({
+    required String deviceName,
+    required ReceiveVisibility visibility,
+    required this.onSetVisibility,
+    required this.onOpen,
+  }) : _deviceName = deviceName,
+       _visibility = visibility;
 
-  AppSystemTray(this._deviceName);
+  String _deviceName;
+  ReceiveVisibility _visibility;
+
+  /// Invoked when the user picks a visibility mode from the tray menu.
+  final void Function(ReceiveVisibility visibility) onSetVisibility;
+
+  /// Invoked when the user asks to open the CrossDrop window from the tray.
+  final Future<void> Function() onOpen;
 
   final SystemTray _systemTray = SystemTray();
   final Menu menu = Menu();
@@ -38,17 +52,48 @@ class AppSystemTray {
       }
     });
 
-    updateDeviceName(_deviceName);
+    await _rebuildMenu();
   }
 
   Future<void> updateDeviceName(String deviceName) async {
+    _deviceName = deviceName;
+    await _rebuildMenu();
+  }
+
+  Future<void> updateVisibility(ReceiveVisibility visibility) async {
+    if (_visibility == visibility) return;
+    _visibility = visibility;
+    await _rebuildMenu();
+  }
+
+  Future<void> _rebuildMenu() async {
     await menu.buildFrom([
-      MenuItemLabel(label: 'Visible to everyone', enabled: false),
-      MenuItemLabel(label: 'Device name: $deviceName', enabled: false),
+      MenuItemLabel(label: _statusLabel, enabled: false),
+      MenuItemLabel(label: 'Device: $_deviceName', enabled: false),
+      MenuSeparator(),
+      MenuItemCheckbox(
+        label: 'Visible to everyone',
+        checked: _visibility == ReceiveVisibility.everyone,
+        onClicked: (_) => onSetVisibility(ReceiveVisibility.everyone),
+      ),
+      MenuItemCheckbox(
+        label: 'Visible for 1 minute',
+        checked: _visibility == ReceiveVisibility.temporary,
+        onClicked: (_) => onSetVisibility(ReceiveVisibility.temporary),
+      ),
+      MenuItemCheckbox(
+        label: 'Hidden',
+        checked: _visibility == ReceiveVisibility.hidden,
+        onClicked: (_) => onSetVisibility(ReceiveVisibility.hidden),
+      ),
       MenuSeparator(),
       MenuItemLabel(
+        label: 'Open CrossDrop',
+        onClicked: (_) => unawaited(onOpen()),
+      ),
+      MenuItemLabel(
         label: 'Quit CrossDrop',
-        onClicked: (menuItem) async {
+        onClicked: (_) async {
           await _systemTray.destroy();
           await windowManager.setPreventClose(false);
           await windowManager.destroy();
@@ -57,6 +102,17 @@ class AppSystemTray {
       ),
     ]);
     await _systemTray.setContextMenu(menu);
+  }
+
+  String get _statusLabel {
+    switch (_visibility) {
+      case ReceiveVisibility.everyone:
+        return 'Visible to everyone';
+      case ReceiveVisibility.temporary:
+        return 'Visible temporarily';
+      case ReceiveVisibility.hidden:
+        return 'Hidden';
+    }
   }
 
   Future<void> togglePanel() async {
@@ -68,8 +124,15 @@ class AppSystemTray {
   }
 
   Future<void> showPanel({Size targetSize = defaultWindowSize}) async {
+    // Only (re)anchor the panel to the cursor when bringing it up from hidden.
+    // If it's already open — e.g. the user clicked the settings gear or the
+    // send button inside it — keep it where it is instead of jumping it under
+    // the cursor's new position.
+    final wasVisible = await windowManager.isVisible();
     await ensureWindowSizeAtLeast(targetSize);
-    await _positionPanelNearCursor();
+    if (!wasVisible) {
+      await _positionPanelNearCursor();
+    }
     await windowManager.show();
     await windowManager.focus();
   }

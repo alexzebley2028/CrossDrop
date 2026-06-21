@@ -7,6 +7,16 @@
 
 CrossDrop is based on [NearDrop](https://github.com/grishka/NearDrop), a Swift implementation of Nearby Share for macOS. [Protocol documentation](https://github.com/grishka/NearDrop/blob/master/PROTOCOL.md) is available in the NearDrop repository.
 
+## Features
+
+- **Send and receive** files to/from Android (Quick Share) and other CrossDrop devices, with a PIN confirmation and QR-code pairing for hidden/contacts-only senders.
+- **Send text and links** — type or paste content and beam it to a nearby device.
+- **Receive text, links, and Wi-Fi credentials** — surfaced in the app with copy / open actions instead of being auto-opened.
+- **Visibility modes** — *Everyone*, *Hidden*, or *Visible for 1 minute* (auto-reverts), controllable from the menu-bar tray and the settings panel.
+- **Wake from hidden** — while *Hidden*, CrossDrop scans (via Bluetooth LE) for the beacon a nearby device emits when it starts sharing, then briefly makes itself discoverable and notifies you. Stay private by default, reachable on demand. (macOS, Linux, iOS.)
+- **Configurable download folder**, **launch at login** (macOS/Linux), light/dark/system theme, and an in-app update check.
+- **macOS share integration** via the system Services menu: *Send with CrossDrop* (files) and *Send text with CrossDrop* (selected text).
+
 ## Screenshots
 
 | Receiving | Sending |
@@ -74,7 +84,7 @@ sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-
 ## Limitations
 
 - **LAN only**. Your Android device and your Mac need to be on the same network for this app to work. Google's implementation supports multiple mediums, including Wi-Fi Direct, Wi-Fi hotspot, Bluetooth, some kind of 5G peer-to-peer connection, and even a WebRTC-based protocol that goes over the internet through Google servers. Wi-Fi direct isn't supported on macOS (Apple has their own, incompatible, AWDL thing, used in AirDrop). Bluetooth needs further reverse engineering.
-- **Visible to everyone on your network at all times** while the app is running. Limited visibility requires talking to Google servers, and becoming temporarily visible requires listening for whatever triggers the "device nearby is sharing" notification.
+- **Visibility is LAN-based.** CrossDrop advertises over mDNS while *Everyone* or *Visible for 1 minute* is selected, and stops advertising while *Hidden*. While *Hidden* it still listens for the BLE "device nearby is sharing" beacon to wake on demand, but it can't *advertise* that beacon itself (Apple platforms forbid custom BLE service-data advertising), so it can't trigger Android's own "device nearby is sharing" notification. Google's account-based *Contacts* visibility requires talking to Google servers.
 
 ## Contributing
 

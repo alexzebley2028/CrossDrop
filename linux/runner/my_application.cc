@@ -6,6 +6,7 @@
 #endif
 
 #include "fast_init_advertiser.h"
+#include "fast_init_scanner.h"
 #include "flutter/generated_plugin_registrant.h"
 
 struct _MyApplication {
@@ -15,7 +16,9 @@ struct _MyApplication {
   FlView* view;
   FlMethodChannel* file_intent_channel;
   FlMethodChannel* fast_init_channel;
+  FlMethodChannel* ble_scan_channel;
   FastInitAdvertiser* fast_init_advertiser;
+  FastInitScanner* nearby_share_scanner;
   GPtrArray* pending_open_files;
   gboolean dart_file_intent_handler_ready;
 };
@@ -122,6 +125,55 @@ static void create_fast_init_channel(MyApplication* self) {
       self->fast_init_channel, fast_init_method_call_cb, self, nullptr);
 }
 
+static void on_nearby_sharing(gpointer user_data) {
+  MyApplication* self = MY_APPLICATION(user_data);
+  if (self->ble_scan_channel != nullptr) {
+    fl_method_channel_invoke_method(self->ble_scan_channel, "onNearbySharing",
+                                    nullptr, nullptr, nullptr, nullptr);
+  }
+}
+
+static void ble_scan_method_call_cb(FlMethodChannel* channel,
+                                    FlMethodCall* method_call,
+                                    gpointer user_data) {
+  MyApplication* self = MY_APPLICATION(user_data);
+  const gchar* method = fl_method_call_get_name(method_call);
+
+  g_autoptr(FlMethodResponse) response = nullptr;
+  if (strcmp(method, "start") == 0) {
+    g_autoptr(GError) error = nullptr;
+    const gboolean started =
+        fast_init_scanner_start(self->nearby_share_scanner, &error);
+    if (error != nullptr) {
+      g_warning("Failed to start Quick Share nearby-sharing scan: %s",
+                error->message);
+    }
+    response = FL_METHOD_RESPONSE(
+        fl_method_success_response_new(fl_value_new_bool(started)));
+  } else if (strcmp(method, "stop") == 0) {
+    fast_init_scanner_stop(self->nearby_share_scanner);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else {
+    response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
+  }
+
+  g_autoptr(GError) error = nullptr;
+  if (!fl_method_call_respond(method_call, response, &error)) {
+    g_warning("Failed to respond to BLE scan method call: %s", error->message);
+  }
+}
+
+static void create_ble_scan_channel(MyApplication* self) {
+  FlEngine* engine = fl_view_get_engine(self->view);
+  FlBinaryMessenger* messenger = fl_engine_get_binary_messenger(engine);
+  g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
+
+  self->ble_scan_channel = fl_method_channel_new(
+      messenger, "crossdrop/ble_scan", FL_METHOD_CODEC(codec));
+  fl_method_channel_set_method_call_handler(
+      self->ble_scan_channel, ble_scan_method_call_cb, self, nullptr);
+}
+
 static void flush_pending_open_files(MyApplication* self) {
   if (self->pending_open_files == nullptr ||
       self->pending_open_files->len == 0 ||
@@ -194,6 +246,7 @@ static void my_application_activate(GApplication* application) {
 
   create_file_intent_channel(self);
   create_fast_init_channel(self);
+  create_ble_scan_channel(self);
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(self->view));
 
@@ -229,6 +282,8 @@ static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
   g_clear_pointer(&self->fast_init_advertiser, fast_init_advertiser_free);
+  g_clear_pointer(&self->nearby_share_scanner, fast_init_scanner_free);
+  g_clear_object(&self->ble_scan_channel);
   g_clear_object(&self->fast_init_channel);
   g_clear_object(&self->file_intent_channel);
   g_clear_pointer(&self->pending_open_files, g_ptr_array_unref);
@@ -244,6 +299,8 @@ static void my_application_class_init(MyApplicationClass* klass) {
 static void my_application_init(MyApplication* self) {
   self->pending_open_files = g_ptr_array_new_with_free_func(g_free);
   self->fast_init_advertiser = fast_init_advertiser_new();
+  self->nearby_share_scanner =
+      fast_init_scanner_new(on_nearby_sharing, self);
 }
 
 MyApplication* my_application_new() {

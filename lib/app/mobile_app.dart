@@ -5,15 +5,19 @@ import 'package:crossdrop/app/notification_actions.dart';
 import 'package:crossdrop/app/pending_transfer.dart';
 import 'package:crossdrop/app/reveal_file.dart';
 import 'package:crossdrop/app/transfer_metadata_extensions.dart';
-import 'package:crossdrop/app/widgets/device_name_field.dart';
+import 'package:crossdrop/app/widgets/device_name_notice.dart';
 import 'package:crossdrop/app/widgets/outgoing_send_section.dart';
+import 'package:crossdrop/app/widgets/send_text_dialog.dart';
+import 'package:crossdrop/app/widgets/settings_panel.dart';
 import 'package:crossdrop/app/widgets/transfer_request_panel.dart';
+import 'package:crossdrop/app/widgets/visibility_control.dart';
 import 'package:crossdrop/app_config.dart';
 import 'package:crossdrop/app_theme.dart';
-import 'package:crossdrop/device.dart';
 import 'package:crossdrop/nearby_share/api/models.dart';
 import 'package:crossdrop/nearby_share/manager/nearby_manager.dart';
 import 'package:crossdrop/notifications.dart';
+import 'package:crossdrop/settings/receive_visibility.dart';
+import 'package:crossdrop/settings/settings_controller.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -33,14 +37,16 @@ class MobileApp extends StatefulWidget {
 class _MobileAppState extends State<MobileApp>
     with WidgetsBindingObserver
     implements NearbyEventsListener {
-  final TextEditingController _deviceNameController = TextEditingController();
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final Map<String, PendingTransfer> _pendingTransfers = {};
   final List<String> _outgoingFilePaths = [];
 
   late NearbyConnectionManager _manager;
+  SettingsController? _settings;
 
+  String? _broadcastName;
+  bool _reconcilePending = false;
   bool _nearbyInitialized = false;
-  bool _isTextFieldEditing = false;
   bool _isStartingBroadcast = false;
   bool _isPickingOutgoingFiles = false;
   int _selectedIndex = 0;
@@ -53,6 +59,10 @@ class _MobileAppState extends State<MobileApp>
   String? _outgoingPin;
   double? _outgoingProgress;
   Exception? _outgoingError;
+  String? _outgoingText;
+
+  bool get _hasOutgoingSelection =>
+      _outgoingFilePaths.isNotEmpty || _outgoingText != null;
 
   @override
   void initState() {
@@ -64,6 +74,12 @@ class _MobileAppState extends State<MobileApp>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _manager = context.read<NearbyConnectionManager>();
+    final settings = context.read<SettingsController>();
+    if (!identical(settings, _settings)) {
+      _settings?.removeListener(_onSettingsChanged);
+      _settings = settings;
+      settings.addListener(_onSettingsChanged);
+    }
     registerNotificationActionHandler(_handleNotificationAction);
     if (_nearbyInitialized) return;
     _nearbyInitialized = true;
@@ -72,73 +88,140 @@ class _MobileAppState extends State<MobileApp>
   }
 
   Future<void> _initNearby() async {
-    final currentDeviceName = await getDeviceName();
     if (!mounted) return;
-    setState(() {
-      _deviceNameController.text = currentDeviceName;
-    });
-
     if (widget.initialOutgoingFilePaths.isNotEmpty) {
       unawaited(_startOutgoingFileSelection(widget.initialOutgoingFilePaths));
     }
-    await _ensureBroadcasting(deviceName: currentDeviceName);
+    await _reconcileBroadcast();
+    await _reconcileScanning();
   }
 
   @override
   void dispose() {
-    _deviceNameController.dispose();
     WidgetsBinding.instance.removeObserver(this);
+    _settings?.removeListener(_onSettingsChanged);
     registerNotificationActionHandler(null);
     _manager.removeNearbyListener(this);
     unawaited(_manager.stopBroadcasting());
     unawaited(_manager.stopDiscovery());
+    unawaited(_manager.stopNearbyShareScanning());
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _nearbyInitialized) {
-      unawaited(_ensureBroadcasting());
+      unawaited(_reconcileBroadcast());
     }
   }
 
-  Future<void> _ensureBroadcasting({String? deviceName}) async {
-    if (_manager.isBroadcasting || _isStartingBroadcast) return;
+  void _onSettingsChanged() {
+    unawaited(_reconcileBroadcast());
+    unawaited(_reconcileScanning());
+  }
+
+  /// Scans for nearby senders only while hidden, so CrossDrop can "wake" and
+  /// briefly become discoverable on demand instead of staying unreachable.
+  Future<void> _reconcileScanning() async {
+    final settings = _settings;
+    if (settings == null) return;
+    try {
+      if (settings.visibility == ReceiveVisibility.hidden) {
+        await _manager.startNearbyShareScanning();
+      } else {
+        await _manager.stopNearbyShareScanning();
+      }
+    } catch (e, s) {
+      _log.severe('Failed to reconcile nearby-share scanning: $e\n$s');
+    }
+  }
+
+  @override
+  void onNearbySharingDetected() {
+    final settings = _settings;
+    if (settings == null || settings.visibility != ReceiveVisibility.hidden) {
+      return;
+    }
+    _log.info('Nearby device sharing: waking to temporary visibility');
+    unawaited(settings.setVisibility(ReceiveVisibility.temporary));
+    unawaited(
+      showNearbySharingNotification().catchError((e, s) {
+        _log.severe('Failed to show nearby-sharing notification: $e\n$s');
+      }),
+    );
+  }
+
+  /// Starts, stops, or restarts the mDNS broadcast so it matches the current
+  /// visibility and device name.
+  Future<void> _reconcileBroadcast() async {
+    final settings = _settings;
+    if (settings == null) return;
+    final name = settings.deviceName;
+
+    if (!settings.shouldBroadcast) {
+      if (_manager.isBroadcasting) {
+        await _manager.stopBroadcasting();
+        _broadcastName = null;
+        if (mounted) setState(() {});
+      }
+      return;
+    }
+
+    if (_manager.isBroadcasting) {
+      if (_broadcastName == name) return;
+      // Name changed while broadcasting → restart with the new name.
+      await _manager.stopBroadcasting();
+      _broadcastName = null;
+    }
+    // A start is already in flight; re-run once it finishes so a name/visibility
+    // change made mid-start isn't lost.
+    if (_isStartingBroadcast) {
+      _reconcilePending = true;
+      return;
+    }
+
     setState(() {
       _isStartingBroadcast = true;
       _receiveError = null;
     });
 
     try {
-      await _manager.startBroadcasting(deviceName ?? await getDeviceName());
+      await _manager.startBroadcasting(name);
+      _broadcastName = name;
     } catch (e, s) {
       _log.severe('Failed to update receive visibility: $e\n$s');
-      if (!mounted) return;
-      setState(() {
-        _receiveError = e.toString();
-      });
-    } finally {
       if (mounted) {
-        setState(() => _isStartingBroadcast = false);
+        setState(() {
+          _receiveError = e.toString();
+        });
+      }
+    } finally {
+      _isStartingBroadcast = false;
+      if (mounted) setState(() {});
+      if (_reconcilePending) {
+        _reconcilePending = false;
+        unawaited(_reconcileBroadcast());
       }
     }
   }
 
-  Future<void> _saveDeviceName() async {
-    FocusScope.of(context).unfocus();
-    setState(() => _isTextFieldEditing = false);
+  Future<void> _openSettings() async {
+    final navContext = _navigatorKey.currentContext;
+    if (navContext == null || !navContext.mounted) return;
+    await showSettingsSheet(navContext);
+  }
 
-    var newName = _deviceNameController.text.trim();
-    if (newName.isEmpty) {
-      newName = await getDeviceName();
-      _deviceNameController.text = newName;
-      return;
-    }
-
-    await setDeviceName(newName);
-    if (_manager.isBroadcasting) {
-      await _manager.stopBroadcasting();
-      await _ensureBroadcasting(deviceName: newName);
+  String _receiveSubtitle(
+    NearbyConnectionManager manager,
+    SettingsController settings,
+  ) {
+    switch (settings.visibility) {
+      case ReceiveVisibility.everyone:
+        return manager.isBroadcasting ? 'Visible to everyone' : 'Starting…';
+      case ReceiveVisibility.temporary:
+        return 'Visible briefly';
+      case ReceiveVisibility.hidden:
+        return 'Hidden';
     }
   }
 
@@ -146,7 +229,7 @@ class _MobileAppState extends State<MobileApp>
   void onDeviceFound(RemoteDeviceInfo device) {
     setState(() {});
     if (device.qrMatched &&
-        _outgoingFilePaths.isNotEmpty &&
+        _hasOutgoingSelection &&
         _outgoingConnectionId == null &&
         _outgoingTargetDeviceId == null) {
       unawaited(_sendSelectedFilesToDevice(device));
@@ -222,6 +305,17 @@ class _MobileAppState extends State<MobileApp>
       _pendingTransfers[connectionId] = transfer.copyWith(
         status: PendingTransferStatus.receiving,
         progress: progress.clamp(0, 1).toDouble(),
+      );
+    });
+  }
+
+  @override
+  void onInboundTextReceived(String connectionId, ReceivedPayload payload) {
+    final transfer = _pendingTransfers[connectionId];
+    if (transfer == null) return;
+    setState(() {
+      _pendingTransfers[connectionId] = transfer.copyWith(
+        receivedPayload: payload,
       );
     });
   }
@@ -328,18 +422,48 @@ class _MobileAppState extends State<MobileApp>
     if (!mounted) return;
     setState(() {
       _selectedIndex = 1;
+      _outgoingText = null;
       _outgoingFilePaths
         ..clear()
         ..addAll(filePaths);
-      _outgoingConnectionId = null;
-      _outgoingTargetDeviceId = null;
-      _outgoingTargetDevice = null;
+      _resetOutgoingProgressState();
       _outgoingStatus = 'Looking for nearby devices...';
-      _outgoingPin = null;
-      _outgoingProgress = null;
-      _outgoingError = null;
     });
 
+    await _beginOutgoingDiscovery();
+  }
+
+  Future<void> _composeAndSendText() async {
+    final text = await _promptForText();
+    if (text == null || text.trim().isEmpty) return;
+    if (!mounted) return;
+    setState(() {
+      _selectedIndex = 1;
+      _outgoingFilePaths.clear();
+      _outgoingText = text.trim();
+      _resetOutgoingProgressState();
+      _outgoingStatus = 'Looking for nearby devices...';
+    });
+
+    await _beginOutgoingDiscovery();
+  }
+
+  Future<String?> _promptForText() async {
+    final navContext = _navigatorKey.currentContext;
+    if (navContext == null || !navContext.mounted) return null;
+    return promptForSendText(navContext);
+  }
+
+  void _resetOutgoingProgressState() {
+    _outgoingConnectionId = null;
+    _outgoingTargetDeviceId = null;
+    _outgoingTargetDevice = null;
+    _outgoingPin = null;
+    _outgoingProgress = null;
+    _outgoingError = null;
+  }
+
+  Future<void> _beginOutgoingDiscovery() async {
     try {
       await _manager.startDiscovery();
     } catch (e, s) {
@@ -352,8 +476,14 @@ class _MobileAppState extends State<MobileApp>
     }
   }
 
+  String _outgoingTextLabel(String text) {
+    final single = text.replaceAll('\n', ' ').trim();
+    final preview = single.length > 40 ? '${single.substring(0, 40)}…' : single;
+    return 'Text: $preview';
+  }
+
   Future<void> _sendSelectedFilesToDevice(RemoteDeviceInfo device) async {
-    if (_outgoingFilePaths.isEmpty || _outgoingConnectionId != null) return;
+    if (!_hasOutgoingSelection || _outgoingConnectionId != null) return;
     setState(() {
       _outgoingTargetDeviceId = device.id;
       _outgoingTargetDevice = device;
@@ -364,7 +494,12 @@ class _MobileAppState extends State<MobileApp>
     });
 
     try {
-      await _manager.initiateTransfer(device.id, List.of(_outgoingFilePaths));
+      final text = _outgoingText;
+      if (text != null) {
+        await _manager.initiateTextTransfer(device.id, text);
+      } else {
+        await _manager.initiateTransfer(device.id, List.of(_outgoingFilePaths));
+      }
       await _manager.stopDiscovery();
     } catch (e, s) {
       _log.severe('Failed to start outgoing transfer: $e\n$s');
@@ -383,13 +518,9 @@ class _MobileAppState extends State<MobileApp>
     if (!mounted) return;
     setState(() {
       _outgoingFilePaths.clear();
-      _outgoingConnectionId = null;
-      _outgoingTargetDeviceId = null;
-      _outgoingTargetDevice = null;
+      _outgoingText = null;
       _outgoingStatus = null;
-      _outgoingPin = null;
-      _outgoingProgress = null;
-      _outgoingError = null;
+      _resetOutgoingProgressState();
     });
   }
 
@@ -409,6 +540,7 @@ class _MobileAppState extends State<MobileApp>
 
     return MaterialApp(
       title: AppConfig.name,
+      navigatorKey: _navigatorKey,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: appThemeSeedColor),
         useMaterial3: true,
@@ -426,6 +558,7 @@ class _MobileAppState extends State<MobileApp>
         selectedIndex: _selectedIndex,
         pendingTransferCount: _pendingTransfers.length,
         onSelectIndex: (index) => setState(() => _selectedIndex = index),
+        onOpenSettings: () => unawaited(_openSettings()),
         receiveViewBuilder: _buildReceiveView,
         sendViewBuilder: _buildSendView,
       ),
@@ -434,6 +567,7 @@ class _MobileAppState extends State<MobileApp>
 
   Widget _buildReceiveView(BuildContext context) {
     final manager = context.watch<NearbyConnectionManager>();
+    final settings = context.watch<SettingsController>();
     final pendingTransfers = _pendingTransfers.entries.toList(growable: false);
 
     return ListView(
@@ -442,7 +576,7 @@ class _MobileAppState extends State<MobileApp>
         _SectionHeader(
           icon: Icons.download_rounded,
           title: 'Receive',
-          subtitle: manager.isBroadcasting ? 'Visible' : 'Starting',
+          subtitle: _receiveSubtitle(manager, settings),
         ),
         const SizedBox(height: 12),
         _ReceiveStatusPanel(
@@ -454,19 +588,27 @@ class _MobileAppState extends State<MobileApp>
           _InlineError(message: _receiveError!),
         ],
         const SizedBox(height: 20),
-        DeviceNameField(
-          controller: _deviceNameController,
-          isEditing: _isTextFieldEditing,
-          onChanged: (_) => setState(() => _isTextFieldEditing = true),
-          onSave: () => unawaited(_saveDeviceName()),
+        VisibilityControl(
+          visibility: settings.visibility,
+          temporaryDuration: settings.temporaryVisibilityDuration,
+          onChanged: (value) => unawaited(settings.setVisibility(value)),
+        ),
+        const SizedBox(height: 20),
+        DeviceNameNotice(
+          deviceName: settings.deviceName,
+          visibility: settings.visibility,
         ),
         const SizedBox(height: 28),
         if (pendingTransfers.isEmpty)
           _EmptyState(
-            icon: Icons.inbox_rounded,
-            title: manager.isBroadcasting
-                ? 'Ready to receive'
-                : 'Starting visibility',
+            icon: settings.visibility == ReceiveVisibility.hidden
+                ? Icons.visibility_off_rounded
+                : Icons.inbox_rounded,
+            title: settings.visibility == ReceiveVisibility.hidden
+                ? 'Hidden from senders'
+                : (manager.isBroadcasting
+                      ? 'Ready to receive'
+                      : 'Starting visibility'),
           )
         else
           for (final entry in pendingTransfers)
@@ -476,6 +618,7 @@ class _MobileAppState extends State<MobileApp>
               status: entry.value.status,
               progress: entry.value.progress,
               error: entry.value.error,
+              receivedPayload: entry.value.receivedPayload,
               onAccept: () =>
                   unawaited(_respondToPendingTransfer(entry.key, true)),
               onDecline: () =>
@@ -498,30 +641,52 @@ class _MobileAppState extends State<MobileApp>
         _SectionHeader(
           icon: Icons.upload_rounded,
           title: 'Send',
-          subtitle: _outgoingFilePaths.isEmpty
-              ? 'No files selected'
+          subtitle: _outgoingText != null
+              ? 'Text ready to send'
+              : _outgoingFilePaths.isEmpty
+              ? 'Nothing selected'
               : '${_outgoingFilePaths.length} selected',
         ),
         const SizedBox(height: 12),
-        FilledButton.icon(
-          onPressed: _isPickingOutgoingFiles
-              ? null
-              : () => unawaited(_pickOutgoingFiles()),
-          icon: const Icon(Icons.file_open_rounded),
-          label: Text(
-            _isPickingOutgoingFiles ? 'Selecting...' : 'Choose files',
-          ),
-          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: _isPickingOutgoingFiles
+                    ? null
+                    : () => unawaited(_pickOutgoingFiles()),
+                icon: const Icon(Icons.file_open_rounded),
+                label: Text(
+                  _isPickingOutgoingFiles ? 'Selecting...' : 'Choose files',
+                ),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              onPressed: () => unawaited(_composeAndSendText()),
+              icon: const Icon(Icons.notes),
+              label: const Text('Text'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 20),
-        if (_outgoingFilePaths.isEmpty)
+        if (!_hasOutgoingSelection)
           const _EmptyState(
             icon: Icons.file_upload_outlined,
-            title: 'Choose files to send',
+            title: 'Choose files or text to send',
           )
         else
           OutgoingSendPanel(
             outgoingFilePaths: _outgoingFilePaths,
+            outgoingTextLabel: _outgoingText == null
+                ? null
+                : _outgoingTextLabel(_outgoingText!),
             status: _outgoingStatus,
             pin: _outgoingPin,
             progress: _outgoingProgress,
@@ -549,6 +714,7 @@ class _MobileHome extends StatelessWidget {
   final int selectedIndex;
   final int pendingTransferCount;
   final ValueChanged<int> onSelectIndex;
+  final VoidCallback onOpenSettings;
   final _PaneBuilder receiveViewBuilder;
   final _PaneBuilder sendViewBuilder;
 
@@ -556,6 +722,7 @@ class _MobileHome extends StatelessWidget {
     required this.selectedIndex,
     required this.pendingTransferCount,
     required this.onSelectIndex,
+    required this.onOpenSettings,
     required this.receiveViewBuilder,
     required this.sendViewBuilder,
   });
@@ -566,7 +733,16 @@ class _MobileHome extends StatelessWidget {
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 760;
         return Scaffold(
-          appBar: AppBar(title: Text(AppConfig.name)),
+          appBar: AppBar(
+            title: Text(AppConfig.name),
+            actions: [
+              IconButton(
+                tooltip: 'Settings',
+                onPressed: onOpenSettings,
+                icon: const Icon(Icons.settings_outlined),
+              ),
+            ],
+          ),
           body: SafeArea(
             child: wide
                 ? Row(

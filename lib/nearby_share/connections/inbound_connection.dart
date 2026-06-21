@@ -12,10 +12,9 @@ import 'package:crossdrop/nearby_share/protobuf/ukey.pb.dart' as ukey;
 import 'package:crossdrop/nearby_share/protobuf/wire_format.pb.dart' as wire;
 import 'package:crossdrop/nearby_share/utils/data_extension.dart';
 import 'package:crossdrop/nearby_share/crypto/crypto_utils.dart';
+import 'package:crossdrop/settings/download_location.dart';
 import 'package:cryptography/cryptography.dart';
-import 'package:path_provider/path_provider.dart'; // For downloads directory
 import 'package:path/path.dart' as p;
-import 'package:url_launcher/url_launcher.dart'; // For path manipulation
 import 'package:logging/logging.dart';
 
 final Logger _log = Logger('inbound_connection');
@@ -48,6 +47,13 @@ abstract class InboundNearbyConnectionDelegate {
     InboundNearbyConnection connection,
     double progress,
   );
+
+  /// Called when a non-file payload (text, URL, or Wi-Fi credentials) has been
+  /// fully received, so the UI can surface it instead of auto-opening it.
+  void inboundPayloadReceived(
+    InboundNearbyConnection connection,
+    ReceivedPayload payload,
+  );
 }
 
 class InboundNearbyConnection extends NearbyConnection {
@@ -55,6 +61,15 @@ class InboundNearbyConnection extends NearbyConnection {
   InboundNearbyConnectionDelegate? delegate;
   Uint8List? _cipherCommitment;
   int _textPayloadID = 0;
+  wire.TextMetadata_Type? _textPayloadType;
+  String? _textPayloadTitle;
+  int _wifiPayloadID = 0;
+  String? _wifiSsid;
+  wire.WifiCredentialsMetadata_SecurityType? _wifiSecurityType;
+  // Non-file (text/URL/Wi-Fi) payloads still expected. The transfer only
+  // completes once both these and all file payloads have arrived, so a mixed
+  // file+text introduction is not torn down by whichever payload lands first.
+  int _pendingBytesPayloads = 0;
   int _totalBytesToReceive = 0;
   int _totalBytesReceived = 0;
   bool _receivedClientConnectionResponse = false;
@@ -243,21 +258,59 @@ class InboundNearbyConnection extends NearbyConnection {
       await fileInfo.fileHandle?.close();
       fileInfo.fileHandle = null; // Mark as closed
       transferredFiles.remove(payloadId); // Remove completed transfer
+      await _maybeFinishTransfer();
+    }
+  }
 
-      if (transferredFiles.isEmpty) {
-        _log.info("Inbound $id: All files received, disconnecting.");
-        await sendDisconnectionAndDisconnect();
-      }
+  /// Disconnects once every expected payload — files and non-file (text / URL /
+  /// Wi-Fi) — has been received.
+  Future<void> _maybeFinishTransfer() async {
+    if (transferredFiles.isEmpty && _pendingBytesPayloads <= 0) {
+      _log.info("Inbound $id: All payloads received, disconnecting.");
+      await sendDisconnectionAndDisconnect();
     }
   }
 
   @override
   Future<bool> processBytesPayload(Uint8List payload, int payloadId) async {
     if (payloadId == _textPayloadID && _textPayloadID != 0) {
-      final urlStr = utf8.decode(payload);
-      _log.info("Inbound $id: Received URL: $urlStr");
-      await launchUrl(Uri.parse(urlStr));
-      await sendDisconnectionAndDisconnect();
+      final content = utf8.decode(payload);
+      final isUrl = _textPayloadType == wire.TextMetadata_Type.URL;
+      _log.info(
+        "Inbound $id: Received ${isUrl ? 'URL' : 'text'} payload "
+        "($payloadId)",
+      );
+      _reportReceivedPayload(
+        ReceivedPayload(
+          kind: isUrl ? ReceivedPayloadKind.url : ReceivedPayloadKind.text,
+          title: _textPayloadTitle,
+          text: content,
+        ),
+      );
+      _pendingBytesPayloads--;
+      await _maybeFinishTransfer();
+      return true; // Handled
+    } else if (payloadId == _wifiPayloadID && _wifiPayloadID != 0) {
+      String? password;
+      try {
+        password = wire.WifiCredentials.fromBuffer(payload).password;
+      } catch (e) {
+        _log.info("Inbound $id: Failed to parse Wi-Fi credentials: $e");
+      }
+      _log.info("Inbound $id: Received Wi-Fi credentials for $_wifiSsid");
+      _reportReceivedPayload(
+        ReceivedPayload(
+          kind: ReceivedPayloadKind.wifi,
+          title: _wifiSsid,
+          wifiSsid: _wifiSsid,
+          wifiPassword: (password != null && password.isNotEmpty)
+              ? password
+              : null,
+          wifiSecurityType: _wifiSecurityLabel(_wifiSecurityType),
+        ),
+      );
+      _pendingBytesPayloads--;
+      await _maybeFinishTransfer();
       return true; // Handled
     } else {
       // Check if it's a text payload that we decided to save as a file
@@ -286,9 +339,7 @@ class InboundNearbyConnection extends NearbyConnection {
           _log.info(
             "Inbound $id: Finished writing text payload $payloadId to file.",
           );
-          if (transferredFiles.isEmpty) {
-            await sendDisconnectionAndDisconnect();
-          }
+          await _maybeFinishTransfer();
           return true; // Handled
         } catch (e) {
           throw NearbyIOException();
@@ -657,7 +708,9 @@ class InboundNearbyConnection extends NearbyConnection {
       }
     }
 
-    // Handle text metadata
+    // Handle text / URL metadata. Unlike files, the content is surfaced to the
+    // UI when it arrives (after the user accepts) rather than written to disk,
+    // so the receiver can copy it or choose to open it.
     if (introduction.textMetadata.isNotEmpty) {
       if (introduction.textMetadata.length == 1) {
         final textMeta = introduction.textMetadata.first;
@@ -666,64 +719,49 @@ class InboundNearbyConnection extends NearbyConnection {
           _log.info(
             "Warning: Received text metadata with payload ID 0 for ${textMeta.textTitle}",
           );
-          // Decide how to handle this - maybe reject?
           await rejectTransfer(
             reason: wire.ConnectionResponseFrame_Status.REJECT,
           );
           return;
         }
         _textPayloadID = payloadIdInt;
-        textDesc = textMeta.textTitle.isNotEmpty
+        _pendingBytesPayloads++;
+        _textPayloadType = textMeta.type;
+        _textPayloadTitle = textMeta.textTitle.isNotEmpty
             ? textMeta.textTitle
-            : (textMeta.type == wire.TextMetadata_Type.URL ? "URL" : "Text");
+            : null;
+        textDesc =
+            _textPayloadTitle ??
+            (textMeta.type == wire.TextMetadata_Type.URL ? "Link" : "Text");
+      } else {
+        await rejectTransfer(
+          reason:
+              wire.ConnectionResponseFrame_Status.UNSUPPORTED_ATTACHMENT_TYPE,
+        );
+        return;
+      }
+    }
 
-        if (textMeta.type == wire.TextMetadata_Type.TEXT ||
-            textMeta.type == wire.TextMetadata_Type.ADDRESS ||
-            textMeta.type == wire.TextMetadata_Type.PHONE_NUMBER) {
-          final destinationDir = await _transferDestinationDirectory();
-          if (destinationDir == null) {
-            await rejectTransfer(
-              reason: wire.ConnectionResponseFrame_Status.NOT_ENOUGH_SPACE,
-            );
-            return;
-          }
-          final downloadsPath = destinationDir.path;
-          final timestamp = DateTime.now()
-              .toIso8601String()
-              .replaceAll(':', '.')
-              .replaceAll('T', '_')
-              .substring(0, 19); // Make filename safer
-          final fileName = _sanitizeFileName(
-            textMeta.textTitle.isNotEmpty
-                ? '${textMeta.textTitle}.txt'
-                : 'shared_text_$timestamp.txt',
-          );
-          final destPath = await _makeUniqueFilePath(
-            p.join(downloadsPath, fileName),
-          );
-
-          final fileMeta = ShareFileMetadata(
-            name: p.basename(destPath),
-            size: textMeta.size.toInt(),
-            mimeType: 'text/plain',
-            localPath: destPath,
-          );
-          filesMeta.add(fileMeta);
-          _totalBytesToReceive += fileMeta.size;
-          transferredFiles[payloadIdInt] = InternalFileInfo(
-            meta: fileMeta,
-            payloadID: payloadIdInt,
-            destinationPath: destPath,
-          );
-          _textPayloadID = 0; // Reset since we save it as file
-          textDesc = null;
-        } else if (textMeta.type != wire.TextMetadata_Type.URL) {
+    // Handle Wi-Fi credentials metadata. The SSID is known up front; the
+    // password arrives as a bytes payload after the user accepts.
+    if (introduction.wifiCredentialsMetadata.isNotEmpty) {
+      if (introduction.wifiCredentialsMetadata.length == 1 &&
+          introduction.textMetadata.isEmpty) {
+        final wifiMeta = introduction.wifiCredentialsMetadata.first;
+        final payloadIdInt = wifiMeta.payloadId.toInt();
+        if (payloadIdInt == 0) {
           await rejectTransfer(
-            reason:
-                wire.ConnectionResponseFrame_Status.UNSUPPORTED_ATTACHMENT_TYPE,
+            reason: wire.ConnectionResponseFrame_Status.REJECT,
           );
           return;
         }
+        _wifiPayloadID = payloadIdInt;
+        _pendingBytesPayloads++;
+        _wifiSsid = wifiMeta.ssid;
+        _wifiSecurityType = wifiMeta.securityType;
+        textDesc = wifiMeta.ssid.isNotEmpty
+            ? 'Wi-Fi: ${wifiMeta.ssid}'
+            : 'Wi-Fi network';
       } else {
         await rejectTransfer(
           reason:
@@ -920,18 +958,33 @@ class InboundNearbyConnection extends NearbyConnection {
   }
 
   Future<Directory?> _transferDestinationDirectory() async {
-    if (Platform.isIOS) {
-      return getApplicationDocumentsDirectory();
-    }
-
     try {
-      final downloadsDir = await getDownloadsDirectory();
-      if (downloadsDir != null) return downloadsDir;
-    } on UnsupportedError {
-      // Fall through to the app documents directory below.
+      return await DownloadLocation.instance.resolve();
+    } catch (e, s) {
+      _log.severe("Inbound $id: Failed to resolve download directory: $e\n$s");
+      return null;
     }
+  }
 
-    return getApplicationDocumentsDirectory();
+  void _reportReceivedPayload(ReceivedPayload payload) {
+    final delegate = this.delegate;
+    if (delegate == null) return;
+    Future.microtask(() => delegate.inboundPayloadReceived(this, payload));
+  }
+
+  String? _wifiSecurityLabel(wire.WifiCredentialsMetadata_SecurityType? type) {
+    switch (type) {
+      case wire.WifiCredentialsMetadata_SecurityType.OPEN:
+        return 'Open';
+      case wire.WifiCredentialsMetadata_SecurityType.WPA_PSK:
+        return 'WPA';
+      case wire.WifiCredentialsMetadata_SecurityType.WEP:
+        return 'WEP';
+      case wire.WifiCredentialsMetadata_SecurityType.SAE:
+        return 'WPA3';
+      default:
+        return null;
+    }
   }
 
   Future<String> _makeUniqueFilePath(String initialPath) async {
