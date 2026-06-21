@@ -19,9 +19,9 @@ CrossDrop is based on [NearDrop](https://github.com/grishka/NearDrop), a Swift i
 
 ## Screenshots
 
-| Receiving | Sending |
-| :---: | :---: |
-| <img src="docs/screenshots/receiving.png" width="300" alt="CrossDrop menu-bar popover, ready to receive files"> | <img src="docs/screenshots/sending.png" width="300" alt="CrossDrop sending a file, showing a QR code to scan from Quick Share"> |
+| Receiving | Sending | Settings |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/receiving.png" width="260" alt="CrossDrop menu-bar popover, ready to receive files"> | <img src="docs/screenshots/sending.png" width="260" alt="CrossDrop sending a file, showing a QR code to scan from Quick Share"> | <img src="docs/screenshots/settings.png" width="260" alt="CrossDrop settings: device name, visibility, download folder, launch at login, appearance, and updates"> |
 
 ## Installing
 
